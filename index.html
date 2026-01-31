@@ -1,0 +1,4267 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Tracker</title>
+
+    <!-- Google Fonts - Police moderne -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bibliothèques pour l'export PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- =============================================
+         CSS - Tout le style de l'application
+         ============================================= -->
+    <style>
+        /* ----- RESET & BASE ----- */
+        /* On réinitialise les marges par défaut du navigateur */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Police et couleurs de base pour toute la page */
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: #0f0f0f;    /* Noir profond */
+            color: #ffffff;               /* Texte clair */
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+            scroll-behavior: smooth;      /* Scroll fluide */
+        }
+
+        /* ----- VARIABLES DE COULEURS ----- */
+        /* Palette de couleurs moderne et professionnelle */
+        :root {
+            --orange-bitcoin: #F7931A;     /* Orange officiel Bitcoin */
+            --or-clair: #FFD700;           /* Or pour les accents */
+            --fond-carte: #1a1a1a;         /* Gris très foncé */
+            --fond-page: #0f0f0f;          /* Noir profond */
+            --bordure: #2a2a2a;            /* Gris foncé */
+            --texte: #ffffff;              /* Texte principal */
+            --texte-secondaire: #b0b0b0;   /* Texte moins important */
+            --vert: #00C853;               /* Vert positif */
+            --rouge: #D32F2F;              /* Rouge négatif */
+            --bleu: #2196F3;               /* Bleu actions */
+        }
+
+        /* ----- ANIMATIONS & TRANSITIONS GLOBALES ----- */
+        * {
+            transition: background-color 0.3s ease,
+                        color 0.3s ease,
+                        border-color 0.3s ease,
+                        opacity 0.3s ease;
+        }
+
+        /* Désactive les transitions pendant les animations complexes */
+        button, a, input, select {
+            transition: all 0.3s ease;
+        }
+
+        /* Animation de fade in pour les éléments */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Applique fade in au body */
+        body {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        /* ----- CONTENEUR PRINCIPAL ----- */
+        .conteneur {
+            max-width: 900px;
+            margin: 0 auto;      /* Centre la page horizontalement */
+        }
+
+        /* ----- EN-TÊTE avec effet glassmorphism ----- */
+        .entete {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(26, 26, 26, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(42, 42, 42, 0.5);
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .entete h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--orange-bitcoin) 0%, var(--or-clair) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .entete p {
+            color: var(--texte-secondaire);
+            font-size: 1.05rem;
+            margin-bottom: 20px;
+        }
+
+        /* Logo Bitcoin plus gros et stylisé */
+        .logo-btc {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 0 15px rgba(247, 147, 26, 0.4));
+            animation: pulse-logo 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse-logo {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* ----- CARTES (composant réutilisable) ----- */
+        /* Chaque section est dans une "carte" avec effet de profondeur */
+        .carte {
+            background-color: var(--fond-carte);
+            border: 1px solid var(--bordure);
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .carte:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+
+        .carte-titre {
+            font-size: 1.5rem;
+            color: var(--texte);
+            margin-bottom: 20px;
+            font-weight: 700;
+            position: relative;
+            padding-left: 16px;
+        }
+
+        .carte-titre::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(180deg, var(--orange-bitcoin), var(--or-clair));
+            border-radius: 2px;
+        }
+
+        /* ----- SECTION PRIX PRINCIPAL ----- */
+        .prix-principal {
+            text-align: center;
+            padding: 40px 24px;
+            border-top: 3px solid var(--orange-bitcoin);
+            border-radius: 12px 12px 0 0;
+        }
+
+        /* Le prix en TRÈS GROS avec effet glow */
+        .prix-eur {
+            font-size: 4.5rem;
+            font-weight: 800;
+            color: var(--or-clair);
+            margin-bottom: 12px;
+            text-shadow: 0 0 30px rgba(247, 147, 26, 0.6),
+                         0 0 60px rgba(247, 147, 26, 0.3);
+            animation: prix-pulse 2s ease-in-out infinite;
+            transition: all 0.4s ease;
+        }
+
+        @keyframes prix-pulse {
+            0%, 100% {
+                text-shadow: 0 0 30px rgba(247, 147, 26, 0.6),
+                             0 0 60px rgba(247, 147, 26, 0.3);
+            }
+            50% {
+                text-shadow: 0 0 40px rgba(247, 147, 26, 0.8),
+                             0 0 80px rgba(247, 147, 26, 0.4);
+            }
+        }
+
+        .prix-usd {
+            font-size: 1.6rem;
+            color: var(--texte-secondaire);
+            margin-bottom: 24px;
+            font-weight: 500;
+        }
+
+        /* Responsive pour mobile */
+        @media (max-width: 768px) {
+            .prix-eur {
+                font-size: 3rem;
+            }
+        }
+
+        /* Variation 24h - Badge pill moderne */
+        .variation {
+            display: inline-block;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .variation:hover {
+            transform: scale(1.05);
+        }
+
+        /* Les classes .hausse et .baisse sont ajoutées par JavaScript */
+        .hausse {
+            background: linear-gradient(135deg, rgba(0, 200, 83, 0.25), rgba(0, 200, 83, 0.15));
+            color: var(--vert);
+            border: 1px solid rgba(0, 200, 83, 0.3);
+            box-shadow: 0 0 20px rgba(0, 200, 83, 0.2);
+        }
+
+        .baisse {
+            background: linear-gradient(135deg, rgba(211, 47, 47, 0.25), rgba(211, 47, 47, 0.15));
+            color: var(--rouge);
+            border: 1px solid rgba(211, 47, 47, 0.3);
+            box-shadow: 0 0 20px rgba(211, 47, 47, 0.2);
+        }
+
+        /* Dernière mise à jour - plus discrète mais visible */
+        .mise-a-jour {
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: var(--texte-secondaire);
+            opacity: 0.7;
+            font-weight: 400;
+        }
+
+        /* ----- SECTION GRAPHIQUE ----- */
+        .graphique-conteneur {
+            position: relative;
+            width: 100%;
+            height: 300px;
+        }
+
+        /* Le canvas où on dessine le graphique */
+        .graphique-conteneur canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ----- SECTION CALCULATEUR ----- */
+        .calculateur {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .champ-groupe {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .champ-groupe label {
+            color: var(--texte-secondaire);
+            font-size: 0.9rem;
+        }
+
+        .champ-input {
+            display: flex;
+            align-items: center;
+            background-color: var(--fond-page);
+            border: 2px solid var(--bordure);
+            border-radius: 10px;
+            padding: 14px 18px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .champ-input:hover {
+            border-color: rgba(247, 147, 26, 0.3);
+            box-shadow: 0 0 0 3px rgba(247, 147, 26, 0.1);
+        }
+
+        .champ-input:focus-within {
+            border-color: var(--orange-bitcoin);
+            box-shadow: 0 0 0 3px rgba(247, 147, 26, 0.2);
+            background-color: rgba(26, 26, 26, 0.8);
+        }
+
+        .champ-input input {
+            background: none;
+            border: none;
+            color: var(--texte);
+            font-size: 1.1rem;
+            font-weight: 500;
+            width: 100%;
+            outline: none;
+        }
+
+        .champ-input input::placeholder {
+            color: var(--texte-secondaire);
+            opacity: 0.6;
+        }
+
+        /* Bouton × pour vider le champ */
+        .bouton-effacer {
+            background: none;
+            border: none;
+            color: var(--texte-secondaire);
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 0 4px;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .bouton-effacer:hover {
+            color: var(--texte);
+        }
+
+        /* Symbole monétaire à droite du champ */
+        .champ-input .symbole {
+            color: var(--texte-secondaire);
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        /* Zone de résultat du calcul - Card séparée élégante */
+        .resultat-calcul {
+            text-align: center;
+            padding: 28px;
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.95), rgba(30, 30, 30, 0.9));
+            border-radius: 12px;
+            border: 1px solid var(--bordure);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.4s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .resultat-btc {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--orange-bitcoin);
+            margin-bottom: 8px;
+            text-shadow: 0 0 20px rgba(247, 147, 26, 0.4);
+        }
+
+        .resultat-label {
+            color: var(--texte-secondaire);
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        /* ----- BOUTON RAFRAÎCHIR moderne ----- */
+        .bouton-rafraichir {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--orange-bitcoin), #e8850f);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(247, 147, 26, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bouton-rafraichir::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .bouton-rafraichir:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(247, 147, 26, 0.6);
+        }
+
+        .bouton-rafraichir:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .bouton-rafraichir:active {
+            transform: translateY(0);
+        }
+
+        .bouton-rafraichir:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Icône de rotation pour le bouton */
+        .bouton-rafraichir:hover .icone-rotation {
+            animation: rotation 1s linear infinite;
+        }
+
+        /* ----- ÉTAT DE CHARGEMENT ----- */
+        .chargement {
+            text-align: center;
+            padding: 40px;
+            color: var(--texte-secondaire);
+        }
+
+        /* Animation de rotation pour l'icône de chargement */
+        @keyframes rotation {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .icone-chargement {
+            display: inline-block;
+            animation: rotation 1s linear infinite;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        /* ----- MESSAGE D'ERREUR ----- */
+        .erreur {
+            text-align: center;
+            padding: 20px;
+            color: var(--rouge);
+            background-color: rgba(248, 81, 73, 0.1);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        /* ----- PIED DE PAGE moderne ----- */
+        .pied-de-page {
+            text-align: center;
+            padding: 40px 20px;
+            margin-top: 40px;
+            border-top: 1px solid var(--bordure);
+            color: var(--texte-secondaire);
+            font-size: 0.9rem;
+            line-height: 1.8;
+        }
+
+        .pied-de-page a {
+            color: var(--orange-bitcoin);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .pied-de-page a:hover {
+            color: var(--or-clair);
+            text-decoration: underline;
+        }
+
+        .fait-avec-amour {
+            margin-top: 15px;
+            font-size: 0.85rem;
+            opacity: 0.7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .fait-avec-amour .coeur {
+            color: #ff6b6b;
+            animation: heartbeat 1.5s ease-in-out infinite;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.1); }
+            50% { transform: scale(1); }
+        }
+
+        /* ----- SECTION PORTFOLIO ----- */
+
+        /* Séparateur visuel entre les sections */
+        .portfolio-separateur {
+            border: none;
+            border-top: 2px solid var(--bordure);
+            margin: 40px 0 20px;
+        }
+
+        /* Grille du résumé : 4 cases côte à côte avec animations */
+        .portfolio-resume {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        /* Chaque case du résumé - Cards élégantes */
+        .resume-item {
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.9), rgba(30, 30, 30, 0.8));
+            border: 1px solid var(--bordure);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.5s ease-out;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .resume-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            border-color: rgba(247, 147, 26, 0.3);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .resume-valeur {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+
+        .resume-label {
+            font-size: 0.75rem;
+            color: var(--texte-secondaire);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 600;
+        }
+
+        /* Formulaire d'ajout d'achat */
+        .portfolio-formulaire {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        /* Bouton "Ajouter cet achat" - Style moderne */
+        .bouton-ajouter {
+            padding: 14px 24px;
+            background: linear-gradient(135deg, var(--orange-bitcoin), #e8850f);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            align-self: end;
+            box-shadow: 0 4px 15px rgba(247, 147, 26, 0.3);
+        }
+
+        .bouton-ajouter:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(247, 147, 26, 0.5);
+        }
+
+        .bouton-ajouter:active {
+            transform: scale(1.02);
+        }
+
+        .bouton-ajouter:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Conteneur du tableau (scrollable sur mobile) */
+        .portfolio-tableau-conteneur {
+            overflow-x: auto;
+        }
+
+        /* Tableau des achats - Style moderne */
+        .portfolio-tableau {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        .portfolio-tableau th {
+            text-align: left;
+            padding: 14px 16px;
+            color: var(--texte-secondaire);
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            border-bottom: 2px solid var(--bordure);
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.8), rgba(30, 30, 30, 0.7));
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .portfolio-tableau td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--bordure);
+            transition: all 0.2s ease;
+        }
+
+        /* Alternance de couleurs subtile */
+        .portfolio-tableau tbody tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.015);
+        }
+
+        .portfolio-tableau tbody tr:hover {
+            background-color: rgba(247, 147, 26, 0.05);
+            transform: scale(1.01);
+        }
+
+        /* Bouton supprimer discret qui devient rouge au hover */
+        .bouton-supprimer {
+            background: rgba(211, 47, 47, 0.1);
+            border: 1px solid rgba(211, 47, 47, 0.3);
+            color: var(--rouge);
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .bouton-supprimer:hover {
+            background: var(--rouge);
+            color: white;
+            border-color: var(--rouge);
+            transform: scale(1.1);
+            box-shadow: 0 2px 10px rgba(211, 47, 47, 0.4);
+        }
+
+        /* Message quand le portfolio est vide */
+        .portfolio-vide {
+            text-align: center;
+            padding: 30px;
+            color: var(--texte-secondaire);
+            font-style: italic;
+        }
+
+        /* ----- SECTION DCA ----- */
+
+        /* Formulaire DCA : 3 champs + bouton sur une ligne */
+        .dca-formulaire {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        /* Bouton "Calculer" du DCA - Style moderne */
+        .bouton-calculer {
+            padding: 14px 24px;
+            background: linear-gradient(135deg, var(--bleu), #1565C0);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            align-self: end;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.4);
+        }
+
+        .bouton-calculer:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(33, 150, 243, 0.6);
+        }
+
+        .bouton-calculer:active {
+            transform: translateY(0);
+        }
+
+        .bouton-calculer:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Grille de résultats DCA : 7 cases */
+        .dca-resultats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        /* Conteneur du graphique DCA */
+        .dca-graphique-conteneur {
+            position: relative;
+            width: 100%;
+            height: 320px;
+        }
+
+        .dca-graphique-conteneur canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Légende du graphique DCA */
+        .dca-legende {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: var(--texte-secondaire);
+        }
+
+        .dca-legende-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Petit carré de couleur pour la légende */
+        .dca-legende-couleur {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* Message initial quand aucune simulation n'est lancée */
+        .dca-placeholder {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--texte-secondaire);
+            font-style: italic;
+        }
+
+        /* Barre de progression pendant le calcul */
+        .dca-progression {
+            text-align: center;
+            padding: 30px;
+            color: var(--texte-secondaire);
+        }
+
+        .dca-barre-fond {
+            width: 100%;
+            height: 8px;
+            background-color: var(--fond-page);
+            border-radius: 4px;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+
+        .dca-barre-remplissage {
+            height: 100%;
+            background: linear-gradient(90deg, #58a6ff, var(--orange-bitcoin));
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        /* ----- BOUTON EXPORT PDF - Style uniforme orange ----- */
+
+        .bouton-export-pdf {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px 20px;
+            background: transparent;
+            color: var(--orange-bitcoin);
+            border: 2px solid var(--orange-bitcoin);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 24px;
+            height: 40px;
+        }
+
+        .bouton-export-pdf:hover {
+            background: var(--orange-bitcoin);
+            color: #000000;
+        }
+
+        .bouton-export-pdf:active {
+            transform: scale(0.98);
+        }
+
+        .bouton-export-pdf:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .bouton-export-pdf .icone {
+            font-size: 16px;
+        }
+
+        /* Message de statut PDF */
+        .pdf-statut {
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .pdf-statut.en-cours {
+            display: block;
+            background-color: rgba(88, 166, 255, 0.15);
+            color: #58a6ff;
+        }
+
+        .pdf-statut.succes {
+            display: block;
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .pdf-statut.erreur {
+            display: block;
+            background-color: rgba(248, 81, 73, 0.15);
+            color: var(--rouge);
+        }
+
+        /* ----- SECTION COMPARATEUR LUMP SUM vs DCA ----- */
+
+        /* Formulaire du comparateur */
+        .comparateur-formulaire {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        /* Bouton "Comparer" - Style moderne */
+        .bouton-comparer {
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            align-self: end;
+            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);
+        }
+
+        .bouton-comparer:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(168, 85, 247, 0.6);
+        }
+
+        .bouton-comparer:active {
+            transform: translateY(0);
+        }
+
+        .bouton-comparer:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Grille des 2 stratégies côte à côte */
+        .comparateur-strategies {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        /* Carte de chaque stratégie avec animation */
+        .strategie-carte {
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.9), rgba(30, 30, 30, 0.8));
+            border: 2px solid var(--bordure);
+            border-radius: 16px;
+            padding: 24px;
+            position: relative;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            animation: slideInFromBottom 0.5s ease-out;
+        }
+
+        @keyframes slideInFromBottom {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .strategie-carte:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Carte gagnante avec bordure colorée */
+        .strategie-carte.gagnante {
+            border-color: var(--vert);
+            box-shadow: 0 0 25px rgba(0, 200, 83, 0.3);
+        }
+
+        /* Badge GAGNANT doré brillant */
+        .badge-gagnant {
+            position: absolute;
+            top: -14px;
+            right: 20px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #1a1a1a;
+            padding: 6px 16px;
+            border-radius: 25px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.6),
+                        0 0 30px rgba(255, 215, 0, 0.3);
+            animation: pulse-badge 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-badge {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 4px 20px rgba(255, 215, 0, 0.6),
+                            0 0 30px rgba(255, 215, 0, 0.3);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 6px 30px rgba(255, 215, 0, 0.8),
+                            0 0 40px rgba(255, 215, 0, 0.5);
+            }
+        }
+
+        /* Titre de la stratégie */
+        .strategie-titre {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .strategie-titre.lumpsum {
+            color: #a855f7;
+        }
+
+        .strategie-titre.dca {
+            color: var(--orange-bitcoin);
+        }
+
+        /* Icône pour chaque stratégie */
+        .strategie-icone {
+            font-size: 1.3rem;
+        }
+
+        /* Métriques de la stratégie */
+        .strategie-metriques {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .metrique-item {
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(26, 26, 26, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .metrique-item:hover {
+            background: rgba(26, 26, 26, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .metrique-valeur {
+            font-size: 1.2rem;
+            font-weight: 800;
+            margin-bottom: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .metrique-label {
+            font-size: 0.75rem;
+            color: var(--texte-secondaire);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            font-weight: 600;
+        }
+
+        /* Zone de différence entre les stratégies */
+        .comparateur-difference {
+            text-align: center;
+            padding: 16px;
+            background-color: var(--fond-page);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 1px solid var(--bordure);
+        }
+
+        .difference-texte {
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .difference-valeur {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        /* Note pédagogique */
+        .comparateur-note {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--texte-secondaire);
+            font-style: italic;
+            margin-top: 16px;
+        }
+
+        /* Graphique comparateur */
+        .comparateur-graphique-conteneur {
+            position: relative;
+            width: 100%;
+            height: 320px;
+        }
+
+        .comparateur-graphique-conteneur canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Légende du graphique comparateur */
+        .comparateur-legende {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: var(--texte-secondaire);
+        }
+
+        .comparateur-legende-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .comparateur-legende-couleur {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* Placeholder du comparateur */
+        .comparateur-placeholder {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--texte-secondaire);
+            font-style: italic;
+        }
+
+        /* ----- DISCLAIMER LEGAL avec icône animée ----- */
+
+        .disclaimer {
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.95), rgba(30, 30, 30, 0.9));
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-left: 4px solid #f59e0b;
+            border-radius: 12px;
+            padding: 24px 28px;
+            margin: 40px 0 20px;
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.1);
+        }
+
+        .disclaimer-titre {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #f59e0b;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+        }
+
+        .disclaimer-titre .icone {
+            font-size: 1.3rem;
+            animation: shake 2s ease-in-out infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg); }
+            10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg); }
+            20%, 40%, 60%, 80% { transform: rotate(10deg); }
+        }
+
+        .disclaimer-contenu {
+            font-size: 0.85rem;
+            color: var(--texte-secondaire);
+            line-height: 1.7;
+        }
+
+        .disclaimer-contenu p {
+            margin-bottom: 12px;
+        }
+
+        .disclaimer-contenu p:last-child {
+            margin-bottom: 0;
+        }
+
+        .disclaimer-contenu strong {
+            color: var(--texte);
+            font-weight: 700;
+        }
+
+        /* ----- RESPONSIVE : MOBILE ----- */
+        /* Ajustements pour les petits écrans */
+        @media (max-width: 600px) {
+            .prix-eur {
+                font-size: 2.5rem;
+            }
+
+            .prix-usd {
+                font-size: 1.1rem;
+            }
+
+            .entete h1 {
+                font-size: 1.8rem;
+            }
+
+            .graphique-conteneur {
+                height: 220px;
+            }
+
+            .portfolio-resume {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .resume-valeur {
+                font-size: 1.1rem;
+            }
+
+            .portfolio-formulaire {
+                grid-template-columns: 1fr;
+            }
+
+            .dca-formulaire {
+                grid-template-columns: 1fr;
+            }
+
+            .dca-resultats {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .dca-graphique-conteneur {
+                height: 250px;
+            }
+
+            .comparateur-formulaire {
+                grid-template-columns: 1fr;
+            }
+
+            .comparateur-strategies {
+                grid-template-columns: 1fr;
+            }
+
+            .comparateur-graphique-conteneur {
+                height: 250px;
+            }
+
+            .strategie-metriques {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .metrique-valeur {
+                font-size: 0.95rem;
+            }
+        }
+
+        /* ----- MODAL COMMENT ÇA MARCHE ----- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .modal-contenu {
+            background-color: #1a1a1a;
+            border-radius: 16px;
+            width: 80%;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 40px;
+            position: relative;
+            border: 1px solid var(--bordure);
+        }
+
+        .modal-fermer {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: var(--texte-secondaire);
+            font-size: 2rem;
+            cursor: pointer;
+            transition: color 0.2s;
+            line-height: 1;
+        }
+
+        .modal-fermer:hover {
+            color: var(--orange-bitcoin);
+        }
+
+        .modal-titre-principal {
+            text-align: center;
+            color: var(--orange-bitcoin);
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--bordure);
+        }
+
+        .modal-intro {
+            text-align: center;
+            font-size: 1.1rem;
+            color: var(--texte);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .modal-section {
+            margin-bottom: 30px;
+        }
+
+        .modal-section-titre {
+            color: var(--orange-bitcoin);
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--bordure);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-section p {
+            color: var(--texte);
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+
+        .modal-section ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .modal-section li {
+            color: var(--texte);
+            line-height: 1.7;
+            margin-bottom: 8px;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .modal-section li::before {
+            content: "•";
+            color: var(--orange-bitcoin);
+            position: absolute;
+            left: 8px;
+        }
+
+        .modal-section ol {
+            padding-left: 25px;
+        }
+
+        .modal-section ol li {
+            padding-left: 5px;
+        }
+
+        .modal-section ol li::before {
+            display: none;
+        }
+
+        .modal-encadre {
+            background-color: #252525;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-left: 3px solid var(--orange-bitcoin);
+        }
+
+        .modal-encadre p {
+            margin-bottom: 0;
+        }
+
+        .modal-astuce {
+            color: var(--or-clair) !important;
+            font-style: italic;
+        }
+
+        .modal-faq {
+            background-color: #252525;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .modal-faq-q {
+            color: var(--orange-bitcoin);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .modal-faq-r {
+            color: var(--texte);
+            padding-left: 20px;
+        }
+
+        .modal-termes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .modal-terme {
+            background-color: #252525;
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .modal-terme strong {
+            color: var(--orange-bitcoin);
+        }
+
+        .modal-terme span {
+            color: var(--texte-secondaire);
+            font-size: 0.9rem;
+        }
+
+        .modal-footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid var(--bordure);
+        }
+
+        .modal-footer p {
+            color: var(--texte);
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+
+        .bouton-compris {
+            background: linear-gradient(135deg, var(--orange-bitcoin), #e8820f);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .bouton-compris:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(247, 147, 26, 0.3);
+        }
+
+        /* ----- SWITCH EUR/USD - Style uniforme orange ----- */
+        .currency-switch {
+            position: absolute;
+            top: 20px;
+            right: 270px;
+            display: flex;
+            background: transparent;
+            border: 2px solid var(--orange-bitcoin);
+            border-radius: 8px;
+            overflow: hidden;
+            height: 40px;
+            width: 110px;
+        }
+
+        .currency-option {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            background: transparent;
+            color: var(--orange-bitcoin);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.3px;
+        }
+
+        .currency-option:hover:not(.active) {
+            background: rgba(247, 147, 26, 0.15);
+        }
+
+        .currency-option.active {
+            background: var(--orange-bitcoin);
+            color: #000000;
+            font-weight: 700;
+        }
+
+        /* Bouton Comment ça marche - Style uniforme orange */
+        .bouton-aide {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            color: var(--orange-bitcoin);
+            border: 2px solid var(--orange-bitcoin);
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .bouton-aide:hover {
+            background: var(--orange-bitcoin);
+            color: #000000;
+        }
+
+        @media (max-width: 768px) {
+            .currency-switch {
+                position: static;
+                margin: 15px auto 10px auto;
+                width: 110px;
+            }
+
+            .bouton-aide {
+                position: static;
+                margin: 10px auto 0 auto;
+                width: fit-content;
+            }
+
+            .entete {
+                padding: 30px 20px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .modal-contenu {
+                width: 95%;
+                padding: 25px;
+                margin: 20px auto;
+            }
+
+            .modal-titre-principal {
+                font-size: 1.4rem;
+            }
+
+            .modal-section-titre {
+                font-size: 1.1rem;
+            }
+
+            .modal-termes {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- =============================================
+         HTML - Structure de la page
+         ============================================= -->
+    <div class="conteneur">
+
+        <!-- EN-TÊTE -->
+        <header class="entete">
+            <div class="logo-btc">&#8383;</div>
+            <h1>Bitcoin Tracker</h1>
+            <p>Suivez le prix du Bitcoin en temps réel</p>
+
+            <!-- Switch EUR/USD -->
+            <div class="currency-switch" id="currencySwitch">
+                <button class="currency-option active" data-currency="EUR" onclick="changerDevise('EUR')">
+                    € EUR
+                </button>
+                <button class="currency-option" data-currency="USD" onclick="changerDevise('USD')">
+                    $ USD
+                </button>
+            </div>
+
+            <button class="bouton-aide" onclick="ouvrirModalAide()">
+                ℹ️ Comment ça marche ?
+            </button>
+        </header>
+
+        <!-- ZONE D'ERREUR (cachée par défaut) -->
+        <div id="zoneErreur" class="erreur" style="display: none;"></div>
+
+        <!-- CARTE : PRIX ACTUEL -->
+        <section class="carte prix-principal" id="sectionPrix">
+            <div class="chargement">
+                <div class="icone-chargement">&#8383;</div>
+                <p>Chargement du prix...</p>
+            </div>
+        </section>
+
+        <!-- BOUTON EXPORT PDF -->
+        <div id="pdfStatut" class="pdf-statut"></div>
+        <button class="bouton-export-pdf" id="boutonExportPDF" onclick="exporterPDF()">
+            <span class="icone">&#128229;</span>
+            Exporter en PDF
+        </button>
+
+        <!-- CARTE : GRAPHIQUE 7 JOURS -->
+        <section class="carte">
+            <h2 class="carte-titre">Evolution sur 7 jours</h2>
+            <div class="graphique-conteneur">
+                <canvas id="graphiquePrix"></canvas>
+            </div>
+        </section>
+
+        <!-- CARTE : CALCULATEUR -->
+        <section class="carte">
+            <h2 class="carte-titre">Calculateur d'investissement</h2>
+            <div class="calculateur">
+                <div class="champ-groupe">
+                    <label for="montantEuros">Montant que vous souhaitez investir</label>
+                    <div class="champ-input">
+                        <input
+                            type="number"
+                            id="montantEuros"
+                            placeholder="Ex : 100"
+                            min="0"
+                            step="any"
+                        >
+                        <button class="bouton-effacer" onclick="effacerCalculateur()" title="Effacer">&times;</button>
+                        <span class="symbole" id="symboleDevise">EUR</span>
+                    </div>
+                </div>
+
+                <div class="resultat-calcul">
+                    <div class="resultat-btc" id="resultatBTC">0.00000000 BTC</div>
+                    <div class="resultat-label">Vous obtiendriez</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SÉPARATEUR VISUEL -->
+        <hr class="portfolio-separateur">
+
+        <!-- CARTE : MON PORTFOLIO BITCOIN -->
+        <section class="carte">
+            <h2 class="carte-titre">Mon Portfolio Bitcoin</h2>
+
+            <!-- Résumé du portfolio (investissement, BTC, valeur, gain) -->
+            <div class="portfolio-resume" id="portfolioResume">
+                <div class="resume-item">
+                    <div class="resume-valeur" id="resumeInvesti">0,00 €</div>
+                    <div class="resume-label">Investi</div>
+                </div>
+                <div class="resume-item">
+                    <div class="resume-valeur" id="resumeBTC">0.00000000</div>
+                    <div class="resume-label">BTC total</div>
+                </div>
+                <div class="resume-item">
+                    <div class="resume-valeur" id="resumeValeur">0,00 €</div>
+                    <div class="resume-label">Valeur actuelle</div>
+                </div>
+                <div class="resume-item">
+                    <div class="resume-valeur" id="resumeGain">0,00 €</div>
+                    <div class="resume-label" id="resumeGainLabel">Gain / Perte</div>
+                </div>
+            </div>
+
+            <!-- Formulaire d'ajout d'achat -->
+            <div class="portfolio-formulaire" id="formulaireAchat">
+                <div class="champ-groupe">
+                    <label for="achatDate">Date d'achat</label>
+                    <div class="champ-input">
+                        <input type="date" id="achatDate">
+                    </div>
+                </div>
+                <div class="champ-groupe">
+                    <label for="achatMontant">Montant investi</label>
+                    <div class="champ-input">
+                        <input type="number" id="achatMontant" placeholder="Ex : 500" min="0" step="any">
+                        <span class="symbole">EUR</span>
+                    </div>
+                </div>
+                <div class="champ-groupe">
+                    <label for="achatPrixBTC">Prix BTC ce jour (optionnel)</label>
+                    <div class="champ-input">
+                        <input type="number" id="achatPrixBTC" placeholder="Auto si vide" min="0" step="any">
+                        <span class="symbole">EUR</span>
+                    </div>
+                </div>
+                <button class="bouton-ajouter" id="boutonAjouter" onclick="ajouterAchat()">
+                    Ajouter cet achat
+                </button>
+            </div>
+
+            <!-- Tableau des achats -->
+            <div class="portfolio-tableau-conteneur">
+                <div id="portfolioTableau"></div>
+            </div>
+        </section>
+
+        <!-- SÉPARATEUR VISUEL -->
+        <hr class="portfolio-separateur">
+
+        <!-- CARTE : CALCULATEUR DCA HISTORIQUE -->
+        <section class="carte">
+            <h2 class="carte-titre">Calculateur DCA Historique</h2>
+            <p style="color: var(--texte-secondaire); margin-bottom: 16px; font-size: 0.9rem;">
+                Simulez ce que vous auriez obtenu en investissant un montant fixe chaque mois dans Bitcoin.
+            </p>
+
+            <!-- Formulaire DCA -->
+            <div class="dca-formulaire">
+                <div class="champ-groupe">
+                    <label for="dcaMontant">Montant mensuel</label>
+                    <div class="champ-input">
+                        <input type="number" id="dcaMontant" placeholder="Ex : 100" min="1" step="any" value="100">
+                        <span class="symbole">EUR</span>
+                    </div>
+                </div>
+                <div class="champ-groupe">
+                    <label for="dcaDateDebut">Date de début</label>
+                    <div class="champ-input">
+                        <input type="date" id="dcaDateDebut" min="2015-01-01">
+                    </div>
+                </div>
+                <div class="champ-groupe">
+                    <label for="dcaJour">Jour du mois</label>
+                    <div class="champ-input">
+                        <input type="number" id="dcaJour" min="1" max="28" value="1" placeholder="1-28">
+                    </div>
+                </div>
+                <button class="bouton-calculer" id="boutonDCA" onclick="lancerSimulationDCA()">
+                    Calculer
+                </button>
+            </div>
+
+            <!-- Zone de résultats DCA (cachée avant le premier calcul) -->
+            <div id="dcaZoneResultats">
+                <div class="dca-placeholder">
+                    Remplissez le formulaire et cliquez sur "Calculer" pour lancer la simulation.
+                </div>
+            </div>
+        </section>
+
+        <!-- SÉPARATEUR VISUEL -->
+        <hr class="portfolio-separateur">
+
+        <!-- CARTE : COMPARATEUR LUMP SUM VS DCA -->
+        <section class="carte">
+            <h2 class="carte-titre">Comparateur : Lump Sum vs DCA</h2>
+            <p style="color: var(--texte-secondaire); margin-bottom: 16px; font-size: 0.9rem;">
+                Comparez les performances entre investir tout d'un coup (Lump Sum) ou progressivement (DCA).
+            </p>
+
+            <!-- Formulaire du comparateur -->
+            <div class="comparateur-formulaire">
+                <div class="champ-groupe">
+                    <label for="compMontant">Montant total</label>
+                    <div class="champ-input">
+                        <input type="number" id="compMontant" placeholder="Ex : 5000" min="1" step="any" value="5000">
+                        <span class="symbole">EUR</span>
+                    </div>
+                </div>
+                <div class="champ-groupe">
+                    <label for="compDateDebut">Date de début</label>
+                    <div class="champ-input">
+                        <input type="date" id="compDateDebut" min="2015-01-01">
+                    </div>
+                </div>
+                <div class="champ-groupe">
+                    <label for="compDuree">Durée DCA (mois)</label>
+                    <div class="champ-input">
+                        <input type="number" id="compDuree" min="2" max="120" value="12" placeholder="Ex : 12">
+                    </div>
+                </div>
+                <button class="bouton-comparer" id="boutonComparer" onclick="lancerComparaison()">
+                    Comparer les stratégies
+                </button>
+            </div>
+
+            <!-- Zone de résultats du comparateur -->
+            <div id="comparateurResultats">
+                <div class="comparateur-placeholder">
+                    Remplissez le formulaire et cliquez sur "Comparer les stratégies" pour voir les résultats.
+                </div>
+            </div>
+        </section>
+
+        <!-- BOUTON RAFRAÎCHIR -->
+        <button class="bouton-rafraichir" id="boutonRafraichir" onclick="rafraichirDonnees()">
+            Rafraîchir les données
+        </button>
+
+        <!-- DISCLAIMER LÉGAL -->
+        <div class="disclaimer">
+            <div class="disclaimer-titre">
+                <span class="icone">&#9888;</span>
+                Avertissement
+            </div>
+            <div class="disclaimer-contenu">
+                <p>Cet outil est fourni à titre informatif uniquement et ne constitue en aucun cas un conseil en investissement financier, fiscal ou juridique.</p>
+                <p>Les performances passées ne préjugent pas des performances futures. Le Bitcoin est un actif hautement volatil. <strong>N'investissez que ce que vous pouvez vous permettre de perdre.</strong></p>
+                <p>Avant tout investissement, consultez un conseiller financier professionnel et faites vos propres recherches (<strong>DYOR - Do Your Own Research</strong>).</p>
+                <p>L'utilisation de cet outil se fait à vos propres risques. Nous déclinons toute responsabilité pour les décisions d'investissement prises sur la base des informations fournies.</p>
+            </div>
+        </div>
+
+        <!-- PIED DE PAGE -->
+        <footer class="pied-de-page">
+            <div>
+                Données fournies par <a href="https://www.coingecko.com" target="_blank" rel="noopener">CoinGecko</a>
+                &amp; <a href="https://www.cryptocompare.com" target="_blank" rel="noopener">CryptoCompare</a>
+            </div>
+            <div class="fait-avec-amour">
+                Fait avec <span class="coeur">❤️</span> et Claude Code
+            </div>
+        </footer>
+    </div>
+
+    <!-- =============================================
+         JAVASCRIPT - Toute la logique de l'application
+         ============================================= -->
+    <script>
+        // ===========================================
+        // VARIABLES GLOBALES
+        // ===========================================
+
+        // On stocke le prix actuel en EUR et USD pour le calculateur
+        // (USD nécessaire car CoinCap retourne les prix en dollars)
+        let prixActuelEUR = 0;
+        let prixActuelUSD = 0;
+
+        // Devise active pour l'affichage (EUR par défaut)
+        let deviseActive = localStorage.getItem('devisePreferee') || 'EUR';
+
+        // Tableau qui contient tous les achats du portfolio
+        // Chaque achat = { date, montant, prixBTC, quantiteBTC }
+        let achats = [];
+
+        // Stocke les derniers résultats calculés (pour l'export PDF)
+        let dernierResultatDCA = null;
+        let dernierResultatComparateur = null;
+
+        // URLs de l'API CoinGecko (gratuite, pas de clé nécessaire)
+        const URL_PRIX = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=eur,usd&include_24hr_change=true';
+        const URL_HISTORIQUE = 'https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=eur&days=7';
+
+        // ===========================================
+        // FONCTION PRINCIPALE : Récupérer les données
+        // ===========================================
+
+        /**
+         * Récupère le prix actuel et l'historique depuis CoinGecko,
+         * puis met à jour toute la page.
+         */
+        async function rafraichirDonnees() {
+            // Désactive le bouton pendant le chargement
+            const bouton = document.getElementById('boutonRafraichir');
+            bouton.disabled = true;
+            bouton.textContent = 'Chargement...';
+
+            // Cache les erreurs précédentes
+            cacherErreur();
+
+            try {
+                // On lance les deux requêtes en parallèle pour aller plus vite
+                // Promise.all attend que les deux soient terminées
+                const [reponsePrix, reponseHistorique] = await Promise.all([
+                    fetch(URL_PRIX),
+                    fetch(URL_HISTORIQUE)
+                ]);
+
+                // Vérifie que les requêtes ont réussi (code 200)
+                if (!reponsePrix.ok || !reponseHistorique.ok) {
+                    throw new Error('Erreur lors de la récupération des données');
+                }
+
+                // Convertit les réponses en objets JavaScript (JSON)
+                const donneesPrix = await reponsePrix.json();
+                const donneesHistorique = await reponseHistorique.json();
+
+                // Met à jour chaque section de la page
+                afficherPrix(donneesPrix.bitcoin);
+                dessinerGraphique(donneesHistorique.prices);
+
+                // Sauvegarde dans le navigateur pour usage hors-ligne
+                sauvegarderDansCache(donneesPrix.bitcoin, donneesHistorique.prices);
+
+            } catch (erreur) {
+                // Si la requête échoue (pas internet, API down, etc.)
+                console.error('Erreur:', erreur);
+                afficherErreur('Impossible de récupérer les données. Vérifiez votre connexion internet.');
+
+                // Essaye de charger les données depuis le cache local
+                chargerDepuisCache();
+            }
+
+            // Recalcule le résultat du calculateur avec le nouveau prix
+            calculerBTC();
+
+            // Met à jour le résumé du portfolio avec le nouveau prix
+            mettreAJourResumePortfolio();
+
+            // Réactive le bouton
+            bouton.disabled = false;
+            bouton.textContent = 'Rafraîchir les données';
+        }
+
+
+        // ===========================================
+        // AFFICHAGE DU PRIX
+        // ===========================================
+
+        /**
+         * Met à jour la section du prix avec les données reçues.
+         * @param {Object} bitcoin - Les données du Bitcoin depuis l'API
+         */
+        function afficherPrix(bitcoin) {
+            // Récupère les valeurs depuis l'objet API
+            const prixEUR = bitcoin.eur;
+            const prixUSD = bitcoin.usd;
+            const variation24h = bitcoin.eur_24h_change;
+
+            // Stocke les prix pour le calculateur et la conversion DCA
+            prixActuelEUR = prixEUR;
+            prixActuelUSD = prixUSD;
+
+            // Détermine le prix principal et secondaire selon la devise active
+            let prixPrincipal, prixSecondaire;
+            if (deviseActive === 'EUR') {
+                prixPrincipal = formaterPrix(prixEUR, 'EUR');
+                prixSecondaire = formaterPrix(prixUSD, 'USD');
+            } else {
+                prixPrincipal = formaterPrix(prixUSD, 'USD');
+                prixSecondaire = formaterPrix(prixEUR, 'EUR');
+            }
+
+            // Détermine si c'est une hausse ou une baisse
+            const estEnHausse = variation24h >= 0;
+            const classeVariation = estEnHausse ? 'hausse' : 'baisse';
+            const symboleVariation = estEnHausse ? '▲' : '▼';
+
+            // Heure actuelle pour "dernière mise à jour"
+            const maintenant = new Date().toLocaleTimeString('fr-FR');
+
+            // Remplace le contenu de la section prix
+            const sectionPrix = document.getElementById('sectionPrix');
+            sectionPrix.innerHTML = `
+                <div class="prix-eur">${prixPrincipal}</div>
+                <div class="prix-usd">${prixSecondaire}</div>
+                <div class="variation ${classeVariation}">
+                    ${symboleVariation} ${Math.abs(variation24h).toFixed(2)}% (24h)
+                </div>
+                <div class="mise-a-jour">Dernière mise à jour : ${maintenant}</div>
+            `;
+
+        }
+
+
+        // ===========================================
+        // FORMATER LES PRIX
+        // ===========================================
+
+        /**
+         * Formate un nombre en prix lisible selon la devise.
+         * @param {number} prix - Le prix à formater
+         * @param {string} devise - 'EUR' ou 'USD'
+         * @returns {string} Prix formaté (ex: "45 123,46 €" ou "$45,123.46")
+         */
+        function formaterPrix(prix, devise) {
+            // Intl.NumberFormat est une fonction JavaScript native
+            // qui formate les nombres selon les conventions locales
+            const locale = devise === 'USD' ? 'en-US' : 'fr-FR';
+            return new Intl.NumberFormat(locale, {
+                style: 'currency',
+                currency: devise,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(prix);
+        }
+
+        /**
+         * Change la devise d'affichage entre EUR et USD.
+         * @param {string} devise - 'EUR' ou 'USD'
+         */
+        function changerDevise(devise) {
+            deviseActive = devise;
+
+            // Sauvegarde le choix dans localStorage
+            localStorage.setItem('devisePreferee', devise);
+
+            // Met à jour l'apparence du switch
+            document.querySelectorAll('.currency-option').forEach(function(btn) {
+                if (btn.dataset.currency === devise) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Met à jour le symbole dans le calculateur
+            const symboleDevise = document.getElementById('symboleDevise');
+            if (symboleDevise) {
+                symboleDevise.textContent = devise;
+            }
+
+            // Rafraîchit l'affichage de tous les prix
+            if (prixActuelEUR > 0 && prixActuelUSD > 0) {
+                afficherPrix({ eur: prixActuelEUR, usd: prixActuelUSD, eur_24h_change: 0 });
+            }
+
+            // Recalcule le calculateur avec la nouvelle devise
+            calculerBTC();
+
+            // Rafraîchit le portfolio si des achats existent
+            if (achats.length > 0) {
+                afficherPortfolio();
+            }
+
+            // Rafraîchit les résultats DCA s'ils existent
+            if (dernierResultatDCA) {
+                afficherResultatsDCA(dernierResultatDCA);
+            }
+
+            // Rafraîchit les résultats du comparateur s'ils existent
+            if (dernierResultatComparateur) {
+                afficherResultatsComparateur(dernierResultatComparateur);
+            }
+        }
+
+        /**
+         * Initialise le switch de devise au chargement de la page.
+         */
+        function initialiserDevise() {
+            // Active le bon bouton selon la devise sauvegardée
+            document.querySelectorAll('.currency-option').forEach(function(btn) {
+                if (btn.dataset.currency === deviseActive) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+
+        // ===========================================
+        // GRAPHIQUE 7 JOURS
+        // ===========================================
+
+        /**
+         * Dessine le graphique d'évolution du prix sur 7 jours.
+         * On utilise un <canvas> HTML pour dessiner directement.
+         *
+         * @param {Array} donneesPrix - Tableau de [timestamp, prix]
+         */
+        function dessinerGraphique(donneesPrix) {
+            const canvas = document.getElementById('graphiquePrix');
+            const ctx = canvas.getContext('2d');
+
+            // Ajuste la résolution du canvas à la taille affichée
+            // (évite le flou sur écrans haute résolution)
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            // Dimensions réelles pour le dessin
+            const largeur = rect.width;
+            const hauteur = rect.height;
+
+            // Marges pour les labels
+            const margeGauche = 70;
+            const margeDroite = 20;
+            const margeHaut = 20;
+            const margeBas = 40;
+
+            // Zone de dessin du graphique
+            const zoneGraphLargeur = largeur - margeGauche - margeDroite;
+            const zoneGraphHauteur = hauteur - margeHaut - margeBas;
+
+            // Efface tout le canvas
+            ctx.clearRect(0, 0, largeur, hauteur);
+
+            // Extrait uniquement les prix (on ignore les timestamps pour le dessin)
+            const prix = donneesPrix.map(point => point[1]);
+            const timestamps = donneesPrix.map(point => point[0]);
+
+            // Trouve le prix min et max pour l'échelle
+            const prixMin = Math.min(...prix);
+            const prixMax = Math.max(...prix);
+            // On ajoute une petite marge (5%) en haut et en bas
+            const marge = (prixMax - prixMin) * 0.05;
+            const echelleMin = prixMin - marge;
+            const echelleMax = prixMax + marge;
+
+            // ----- LIGNES HORIZONTALES DE REPÈRE -----
+            ctx.strokeStyle = '#21262d';
+            ctx.lineWidth = 1;
+            ctx.fillStyle = '#8b949e';
+            ctx.font = '11px Segoe UI, sans-serif';
+            ctx.textAlign = 'right';
+
+            const nbLignes = 5;
+            for (let i = 0; i <= nbLignes; i++) {
+                const y = margeHaut + (i / nbLignes) * zoneGraphHauteur;
+                const valeur = echelleMax - (i / nbLignes) * (echelleMax - echelleMin);
+
+                // Dessine la ligne
+                ctx.beginPath();
+                ctx.moveTo(margeGauche, y);
+                ctx.lineTo(largeur - margeDroite, y);
+                ctx.stroke();
+
+                // Affiche le prix à gauche
+                ctx.fillText(formaterPrixCourt(valeur), margeGauche - 8, y + 4);
+            }
+
+            // ----- LABELS DES JOURS (axe horizontal) -----
+            ctx.textAlign = 'center';
+            const joursLabels = [];
+            const joursSemaine = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+            // On affiche un label par jour (7 labels)
+            for (let i = 0; i < 7; i++) {
+                const index = Math.floor((i / 6) * (timestamps.length - 1));
+                const date = new Date(timestamps[index]);
+                const x = margeGauche + (index / (prix.length - 1)) * zoneGraphLargeur;
+                ctx.fillText(joursSemaine[date.getDay()], x, hauteur - 10);
+            }
+
+            // ----- COURBE DU PRIX -----
+            // Détermine la couleur selon la tendance
+            const premierPrix = prix[0];
+            const dernierPrix = prix[prix.length - 1];
+            const couleurCourbe = dernierPrix >= premierPrix ? '#3fb950' : '#f85149';
+
+            // Dessine la ligne
+            ctx.strokeStyle = couleurCourbe;
+            ctx.lineWidth = 2.5;
+            ctx.lineJoin = 'round';    // Coins arrondis
+            ctx.lineCap = 'round';     // Extrémités arrondies
+            ctx.beginPath();
+
+            for (let i = 0; i < prix.length; i++) {
+                // Calcule la position X et Y de chaque point
+                const x = margeGauche + (i / (prix.length - 1)) * zoneGraphLargeur;
+                const y = margeHaut + ((echelleMax - prix[i]) / (echelleMax - echelleMin)) * zoneGraphHauteur;
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);   // Premier point : on se déplace
+                } else {
+                    ctx.lineTo(x, y);   // Points suivants : on trace
+                }
+            }
+            ctx.stroke();
+
+            // ----- DÉGRADÉ SOUS LA COURBE -----
+            // Crée un dégradé vertical (couleur en haut → transparent en bas)
+            const gradient = ctx.createLinearGradient(0, margeHaut, 0, margeHaut + zoneGraphHauteur);
+            gradient.addColorStop(0, couleurCourbe + '30');   // Semi-transparent
+            gradient.addColorStop(1, couleurCourbe + '00');   // Complètement transparent
+
+            // Ferme le chemin pour créer une zone remplie
+            ctx.lineTo(margeGauche + zoneGraphLargeur, margeHaut + zoneGraphHauteur);
+            ctx.lineTo(margeGauche, margeHaut + zoneGraphHauteur);
+            ctx.closePath();
+            ctx.fillStyle = gradient;
+            ctx.fill();
+        }
+
+        /**
+         * Formate un prix de manière courte pour les labels du graphique.
+         * Exemple : 45123 → "45 123 €"
+         */
+        function formaterPrixCourt(prix) {
+            return new Intl.NumberFormat('fr-FR', {
+                style: 'currency',
+                currency: 'EUR',
+                maximumFractionDigits: 0
+            }).format(prix);
+        }
+
+
+        // ===========================================
+        // CALCULATEUR D'INVESTISSEMENT
+        // ===========================================
+
+        /**
+         * Calcule combien de BTC on obtient pour un montant dans la devise active.
+         * Appelé à chaque fois que l'utilisateur tape dans le champ.
+         */
+        function calculerBTC() {
+            const champMontant = document.getElementById('montantEuros');
+            const resultat = document.getElementById('resultatBTC');
+
+            // Récupère le montant tapé (ou 0 si vide)
+            const montant = parseFloat(champMontant.value) || 0;
+
+            // Utilise le prix dans la devise active
+            const prixActif = deviseActive === 'EUR' ? prixActuelEUR : prixActuelUSD;
+
+            // Si on n'a pas encore le prix, on ne peut pas calculer
+            if (prixActif <= 0) {
+                resultat.textContent = '— BTC';
+                return;
+            }
+
+            // Calcul simple : montant / prix = quantité de BTC
+            const quantiteBTC = montant / prixActif;
+
+            // Affiche avec 8 décimales (standard Bitcoin)
+            resultat.textContent = quantiteBTC.toFixed(8) + ' BTC';
+        }
+
+        // Écoute les saisies dans le champ du calculateur
+        document.getElementById('montantEuros').addEventListener('input', calculerBTC);
+
+        /**
+         * Vide le champ du calculateur et remet le résultat à zéro.
+         */
+        function effacerCalculateur() {
+            document.getElementById('montantEuros').value = '';
+            document.getElementById('resultatBTC').textContent = '0.00000000 BTC';
+        }
+
+
+        // ===========================================
+        // GESTION DES ERREURS
+        // ===========================================
+
+        /**
+         * Affiche un message d'erreur à l'utilisateur.
+         */
+        function afficherErreur(message) {
+            const zoneErreur = document.getElementById('zoneErreur');
+            zoneErreur.textContent = message;
+            zoneErreur.style.display = 'block';
+        }
+
+        /** Cache la zone d'erreur. */
+        function cacherErreur() {
+            document.getElementById('zoneErreur').style.display = 'none';
+        }
+
+
+        // ===========================================
+        // CACHE LOCAL (localStorage)
+        // ===========================================
+        // Permet de fonctionner même sans connexion internet
+        // en sauvegardant les dernières données reçues.
+
+        /**
+         * Sauvegarde les données dans le navigateur.
+         */
+        function sauvegarderDansCache(prixBitcoin, historique) {
+            try {
+                localStorage.setItem('btc_prix', JSON.stringify(prixBitcoin));
+                localStorage.setItem('btc_historique', JSON.stringify(historique));
+                localStorage.setItem('btc_date_cache', new Date().toISOString());
+            } catch (e) {
+                // localStorage peut échouer (navigation privée, etc.)
+                console.warn('Impossible de sauvegarder dans le cache:', e);
+            }
+        }
+
+        /**
+         * Charge les données depuis le cache local si disponibles.
+         */
+        function chargerDepuisCache() {
+            try {
+                const prixCache = localStorage.getItem('btc_prix');
+                const historiqueCache = localStorage.getItem('btc_historique');
+
+                if (prixCache && historiqueCache) {
+                    const prixBitcoin = JSON.parse(prixCache);
+                    const historique = JSON.parse(historiqueCache);
+
+                    afficherPrix(prixBitcoin);
+                    dessinerGraphique(historique);
+
+                    // Indique que ce sont des données en cache
+                    const dateCache = localStorage.getItem('btc_date_cache');
+                    if (dateCache) {
+                        const date = new Date(dateCache).toLocaleString('fr-FR');
+                        afficherErreur(`Données hors ligne (cache du ${date})`);
+                    }
+                }
+            } catch (e) {
+                console.warn('Impossible de charger le cache:', e);
+            }
+        }
+
+
+        // ===========================================
+        // REDIMENSIONNEMENT DU GRAPHIQUE
+        // ===========================================
+
+        // Quand la fenêtre change de taille, on redessine le graphique
+        // pour qu'il s'adapte à la nouvelle largeur
+        let timerRedimension = null;
+        window.addEventListener('resize', function() {
+            // On attend un petit peu avant de redessiner (évite de redessiner
+            // 60 fois par seconde pendant le redimensionnement)
+            clearTimeout(timerRedimension);
+            timerRedimension = setTimeout(function() {
+                try {
+                    const historiqueCache = localStorage.getItem('btc_historique');
+                    if (historiqueCache) {
+                        dessinerGraphique(JSON.parse(historiqueCache));
+                    }
+                } catch (e) {
+                    // Pas grave si ça échoue
+                }
+            }, 250);
+        });
+
+
+        // ===========================================
+        // PORTFOLIO BITCOIN
+        // ===========================================
+        // Gère la liste des achats, le stockage local,
+        // et le calcul du résumé (gain/perte).
+
+        /**
+         * Charge les achats depuis localStorage au démarrage.
+         */
+        function chargerAchats() {
+            try {
+                const donneesAchats = localStorage.getItem('btc_achats');
+                if (donneesAchats) {
+                    achats = JSON.parse(donneesAchats);
+                }
+            } catch (e) {
+                console.warn('Impossible de charger les achats:', e);
+                achats = [];
+            }
+        }
+
+        /**
+         * Sauvegarde les achats dans localStorage.
+         */
+        function sauvegarderAchats() {
+            try {
+                localStorage.setItem('btc_achats', JSON.stringify(achats));
+            } catch (e) {
+                console.warn('Impossible de sauvegarder les achats:', e);
+            }
+        }
+
+        /**
+         * Ajoute un achat au portfolio.
+         * Si le prix BTC n'est pas renseigné, on va le chercher via l'API CoinGecko.
+         */
+        async function ajouterAchat() {
+            const champDate = document.getElementById('achatDate');
+            const champMontant = document.getElementById('achatMontant');
+            const champPrixBTC = document.getElementById('achatPrixBTC');
+            const bouton = document.getElementById('boutonAjouter');
+
+            // Récupère les valeurs saisies
+            const dateAchat = champDate.value;
+            const montant = parseFloat(champMontant.value);
+            let prixBTC = parseFloat(champPrixBTC.value);
+
+            // Vérifie que la date et le montant sont remplis
+            if (!dateAchat) {
+                alert('Veuillez sélectionner une date.');
+                return;
+            }
+            if (!montant || montant <= 0) {
+                alert('Veuillez entrer un montant valide.');
+                return;
+            }
+
+            // Si le prix BTC n'est pas renseigné, on le récupère depuis l'API
+            if (!prixBTC || prixBTC <= 0) {
+                bouton.disabled = true;
+                bouton.textContent = 'Recherche du prix...';
+
+                prixBTC = await recupererPrixHistorique(dateAchat);
+
+                if (!prixBTC) {
+                    alert('Impossible de récupérer le prix du Bitcoin pour cette date. Veuillez le saisir manuellement.');
+                    bouton.disabled = false;
+                    bouton.textContent = 'Ajouter cet achat';
+                    return;
+                }
+            }
+
+            // Calcule la quantité de BTC obtenue
+            const quantiteBTC = montant / prixBTC;
+
+            // Crée l'objet achat et l'ajoute au tableau
+            const achat = {
+                date: dateAchat,
+                montant: montant,
+                prixBTC: prixBTC,
+                quantiteBTC: quantiteBTC
+            };
+            achats.push(achat);
+
+            // Sauvegarde et met à jour l'affichage
+            sauvegarderAchats();
+            afficherPortfolio();
+
+            // Vide le formulaire pour le prochain ajout
+            champDate.value = '';
+            champMontant.value = '';
+            champPrixBTC.value = '';
+
+            // Réactive le bouton
+            bouton.disabled = false;
+            bouton.textContent = 'Ajouter cet achat';
+        }
+
+        /**
+         * Récupère le prix du Bitcoin à une date donnée via l'API CoinGecko.
+         * L'API attend la date au format "dd-mm-yyyy".
+         *
+         * @param {string} dateISO - La date au format "yyyy-mm-dd" (format du champ <input type="date">)
+         * @returns {number|null} Le prix en EUR, ou null en cas d'erreur
+         */
+        async function recupererPrixHistorique(dateISO) {
+            try {
+                // Convertit "2024-03-15" en "15-03-2024" (format CoinGecko)
+                const parties = dateISO.split('-');
+                const dateFormatee = parties[2] + '-' + parties[1] + '-' + parties[0];
+
+                const url = 'https://api.coingecko.com/api/v3/coins/bitcoin/history?date=' + dateFormatee;
+                const reponse = await fetch(url);
+
+                if (!reponse.ok) {
+                    throw new Error('Erreur API');
+                }
+
+                const donnees = await reponse.json();
+                // Le prix est dans donnees.market_data.current_price.eur
+                return donnees.market_data.current_price.eur;
+            } catch (e) {
+                console.error('Erreur récupération prix historique:', e);
+                return null;
+            }
+        }
+
+        /**
+         * Supprime un achat du portfolio par son index.
+         * @param {number} index - Position de l'achat dans le tableau
+         */
+        function supprimerAchat(index) {
+            // Demande confirmation avant de supprimer
+            if (!confirm('Supprimer cet achat ?')) {
+                return;
+            }
+
+            // splice(index, 1) retire 1 élément à la position "index"
+            achats.splice(index, 1);
+            sauvegarderAchats();
+            afficherPortfolio();
+        }
+
+        /**
+         * Affiche le tableau des achats et met à jour le résumé.
+         */
+        function afficherPortfolio() {
+            const conteneur = document.getElementById('portfolioTableau');
+
+            // Si aucun achat, affiche un message
+            if (achats.length === 0) {
+                conteneur.innerHTML = '<div class="portfolio-vide">Aucun achat enregistré. Ajoutez votre premier achat ci-dessus.</div>';
+                mettreAJourResumePortfolio();
+                return;
+            }
+
+            // Trie les achats du plus récent au plus ancien
+            const achatsTriés = achats
+                .map(function(achat, index) { return { achat: achat, indexOriginal: index }; })
+                .sort(function(a, b) { return b.achat.date.localeCompare(a.achat.date); });
+
+            // Construit le tableau HTML
+            let html = '<table class="portfolio-tableau">';
+            html += '<thead><tr>';
+            html += '<th>Date</th>';
+            html += '<th>Investi</th>';
+            html += '<th>Prix BTC</th>';
+            html += '<th>BTC obtenus</th>';
+            html += '<th></th>';
+            html += '</tr></thead>';
+            html += '<tbody>';
+
+            for (let i = 0; i < achatsTriés.length; i++) {
+                const achat = achatsTriés[i].achat;
+                const indexOriginal = achatsTriés[i].indexOriginal;
+
+                // Formate la date "2024-03-15" → "15/03/2024"
+                const dateFormatee = formaterDate(achat.date);
+
+                // Convertit les montants si la devise active est USD
+                const tauxChange = prixActuelUSD / prixActuelEUR;
+                let montantAffiche = achat.montant;
+                let prixBTCAffiche = achat.prixBTC;
+
+                if (deviseActive === 'USD' && prixActuelEUR > 0) {
+                    montantAffiche = achat.montant * tauxChange;
+                    prixBTCAffiche = achat.prixBTC * tauxChange;
+                }
+
+                html += '<tr>';
+                html += '<td>' + dateFormatee + '</td>';
+                html += '<td>' + formaterPrix(montantAffiche, deviseActive) + '</td>';
+                html += '<td>' + formaterPrix(prixBTCAffiche, deviseActive) + '</td>';
+                html += '<td>' + achat.quantiteBTC.toFixed(8) + '</td>';
+                html += '<td><button class="bouton-supprimer" onclick="supprimerAchat(' + indexOriginal + ')">Supprimer</button></td>';
+                html += '</tr>';
+            }
+
+            html += '</tbody></table>';
+            conteneur.innerHTML = html;
+
+            // Met à jour le résumé
+            mettreAJourResumePortfolio();
+        }
+
+        /**
+         * Met à jour les 4 cases du résumé du portfolio.
+         * Appelé quand un achat est ajouté/supprimé ET quand le prix est rafraîchi.
+         */
+        function mettreAJourResumePortfolio() {
+            // Calcule les totaux en parcourant tous les achats
+            let totalInvesti = 0;
+            let totalBTC = 0;
+
+            for (let i = 0; i < achats.length; i++) {
+                totalInvesti += achats[i].montant;
+                totalBTC += achats[i].quantiteBTC;
+            }
+
+            // Convertit si nécessaire pour l'affichage
+            const tauxChange = prixActuelUSD / prixActuelEUR;
+            let totalInvestiAffiche = totalInvesti;
+            if (deviseActive === 'USD' && prixActuelEUR > 0) {
+                totalInvestiAffiche = totalInvesti * tauxChange;
+            }
+
+            // Valeur actuelle = BTC possédés × prix actuel (dans la devise active)
+            const prixActif = deviseActive === 'EUR' ? prixActuelEUR : prixActuelUSD;
+            const valeurActuelle = totalBTC * prixActif;
+
+            // Gain/perte en devise active et en pourcentage
+            const gain = valeurActuelle - totalInvestiAffiche;
+            const gainPourcent = totalInvestiAffiche > 0 ? (gain / totalInvestiAffiche) * 100 : 0;
+
+            // Met à jour l'affichage
+            document.getElementById('resumeInvesti').textContent = formaterPrix(totalInvestiAffiche, deviseActive);
+            document.getElementById('resumeBTC').textContent = totalBTC.toFixed(8);
+
+            const elementValeur = document.getElementById('resumeValeur');
+            const elementGain = document.getElementById('resumeGain');
+            const elementGainLabel = document.getElementById('resumeGainLabel');
+
+            // Affiche la valeur actuelle (ou "—" si on n'a pas encore le prix)
+            if (prixActif > 0) {
+                elementValeur.textContent = formaterPrix(valeurActuelle, deviseActive);
+
+                // Couleur verte ou rouge selon gain/perte
+                const estPositif = gain >= 0;
+                const symbole = estPositif ? '+' : '';
+                elementGain.textContent = symbole + formaterPrix(gain, deviseActive);
+                elementGain.style.color = estPositif ? 'var(--vert)' : 'var(--rouge)';
+                elementGainLabel.textContent = 'Gain / Perte (' + symbole + gainPourcent.toFixed(2) + '%)';
+            } else {
+                elementValeur.textContent = '—';
+                elementGain.textContent = '—';
+                elementGain.style.color = '';
+                elementGainLabel.textContent = 'Gain / Perte';
+            }
+        }
+
+        /**
+         * Formate une date ISO "2024-03-15" en "15/03/2024" (format français).
+         */
+        function formaterDate(dateISO) {
+            const parties = dateISO.split('-');
+            return parties[2] + '/' + parties[1] + '/' + parties[0];
+        }
+
+        // Initialise la date du formulaire à aujourd'hui
+        document.getElementById('achatDate').valueAsDate = new Date();
+
+
+        // ===========================================
+        // CALCULATEUR DCA HISTORIQUE
+        // ===========================================
+        // DCA = Dollar Cost Averaging (investissement régulier).
+        // Simule un achat fixe chaque mois depuis une date passée
+        // et calcule les résultats avec les vrais prix historiques.
+
+        // Initialise la date de début du DCA à il y a 2 ans
+        (function() {
+            const ilYA2Ans = new Date();
+            ilYA2Ans.setFullYear(ilYA2Ans.getFullYear() - 2);
+            document.getElementById('dcaDateDebut').value = ilYA2Ans.toISOString().split('T')[0];
+        })();
+
+        /**
+         * Lance la simulation DCA.
+         * 1. Génère toutes les dates d'achat mensuelles
+         * 2. Récupère les prix historiques via l'API
+         * 3. Calcule les résultats pour chaque mois
+         * 4. Affiche le résumé et le graphique
+         */
+        async function lancerSimulationDCA() {
+            const champMontant = document.getElementById('dcaMontant');
+            const champDate = document.getElementById('dcaDateDebut');
+            const champJour = document.getElementById('dcaJour');
+            const bouton = document.getElementById('boutonDCA');
+            const zoneResultats = document.getElementById('dcaZoneResultats');
+
+            // Récupère les valeurs du formulaire
+            const montantMensuel = parseFloat(champMontant.value);
+            const dateDebutStr = champDate.value;
+            const jourDuMois = parseInt(champJour.value) || 1;
+
+            // Validation des champs
+            if (!montantMensuel || montantMensuel <= 0) {
+                alert('Veuillez entrer un montant mensuel valide.');
+                return;
+            }
+            if (!dateDebutStr) {
+                alert('Veuillez sélectionner une date de début.');
+                return;
+            }
+            if (jourDuMois < 1 || jourDuMois > 28) {
+                alert('Le jour du mois doit être entre 1 et 28.');
+                return;
+            }
+
+            // Vérifie qu'on a le prix actuel
+            if (prixActuelEUR <= 0) {
+                alert('Le prix actuel du Bitcoin n\'est pas encore chargé. Patientez un instant.');
+                return;
+            }
+
+            // Désactive le bouton et affiche la progression
+            bouton.disabled = true;
+            bouton.textContent = 'Calcul en cours...';
+            zoneResultats.innerHTML = '<div class="dca-progression">'
+                + '<div class="icone-chargement">&#8383;</div>'
+                + '<p>Récupération des prix historiques...</p>'
+                + '<div class="dca-barre-fond"><div class="dca-barre-remplissage" id="dcaBarre" style="width: 10%"></div></div>'
+                + '</div>';
+
+            try {
+                // --- Étape 1 : Générer les dates d'achat ---
+                const dateDebut = new Date(dateDebutStr);
+                const maintenant = new Date();
+                const datesAchat = [];
+
+                // On part de la date de début et on avance mois par mois
+                let dateCourante = new Date(dateDebut.getFullYear(), dateDebut.getMonth(), jourDuMois);
+                while (dateCourante <= maintenant) {
+                    datesAchat.push(new Date(dateCourante));
+                    // Passe au mois suivant
+                    dateCourante.setMonth(dateCourante.getMonth() + 1);
+                }
+
+                if (datesAchat.length === 0) {
+                    throw new Error('La date de début est dans le futur.');
+                }
+
+                // --- Étape 2 : Récupérer les prix historiques via CryptoCompare ---
+                // CryptoCompare retourne les prix directement en EUR (pas de conversion nécessaire)
+
+                document.getElementById('dcaBarre').style.width = '30%';
+
+                // Calcul du nombre de jours entre la date de début et maintenant
+                const joursTotal = Math.ceil((maintenant - datesAchat[0]) / (24 * 60 * 60 * 1000));
+
+                // CryptoCompare utilise des timestamps en SECONDES (pas millisecondes)
+                // et limite à 2000 jours par requête
+                let prixHistoriques = []; // Format : [[timestamp_ms, prixEUR], ...]
+
+                // Si plus de 2000 jours, on fait plusieurs requêtes
+                const LIMITE_JOURS = 2000;
+                let timestampFinSec = Math.floor(maintenant.getTime() / 1000);
+
+                while (prixHistoriques.length < joursTotal) {
+                    const joursRestants = joursTotal - prixHistoriques.length;
+                    const joursARecuperer = Math.min(joursRestants, LIMITE_JOURS);
+
+                    const url = `https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=EUR&limit=${joursARecuperer}&toTs=${timestampFinSec}`;
+
+                    const reponse = await fetch(url);
+                    if (!reponse.ok) {
+                        throw new Error('Erreur API CryptoCompare (code ' + reponse.status + ')');
+                    }
+
+                    const donnees = await reponse.json();
+
+                    if (donnees.Response !== 'Success' || !donnees.Data || !donnees.Data.Data) {
+                        throw new Error('Réponse invalide de CryptoCompare');
+                    }
+
+                    // CryptoCompare retourne : { Data: { Data: [{ time: 123..., close: 45000 }, ...] } }
+                    // time est en SECONDES, on convertit en millisecondes pour cohérence
+                    const nouveauxPrix = donnees.Data.Data.map(point => [
+                        point.time * 1000,  // Convertit secondes → millisecondes
+                        point.close         // Prix de clôture en EUR
+                    ]);
+
+                    // Ajoute au début car on récupère du plus récent au plus ancien
+                    prixHistoriques = nouveauxPrix.concat(prixHistoriques);
+
+                    // Recule le timestamp pour la prochaine requête
+                    if (donnees.Data.Data.length > 0) {
+                        timestampFinSec = donnees.Data.Data[0].time - 1;
+                    } else {
+                        break; // Plus de données disponibles
+                    }
+
+                    // Si on a récupéré moins que demandé, on a atteint la limite des données
+                    if (donnees.Data.Data.length < joursARecuperer) {
+                        break;
+                    }
+                }
+
+                if (prixHistoriques.length === 0) {
+                    throw new Error('Aucune donnée de prix disponible pour cette période.');
+                }
+
+                document.getElementById('dcaBarre').style.width = '60%';
+
+                // --- Étape 3 : Calculer la simulation ---
+                let totalInvesti = 0;
+                let totalBTC = 0;
+                const historiqueSimulation = []; // Pour le graphique
+
+                for (let i = 0; i < datesAchat.length; i++) {
+                    const dateAchat = datesAchat[i];
+                    const timestampAchat = dateAchat.getTime();
+
+                    // Trouve le prix le plus proche de cette date dans les données
+                    const prixCeJour = trouverPrixPourDate(prixHistoriques, timestampAchat);
+
+                    if (prixCeJour > 0) {
+                        const btcAchetes = montantMensuel / prixCeJour;
+                        totalInvesti += montantMensuel;
+                        totalBTC += btcAchetes;
+                    }
+
+                    // Enregistre l'état à ce moment pour le graphique
+                    historiqueSimulation.push({
+                        date: dateAchat,
+                        totalInvesti: totalInvesti,
+                        totalBTC: totalBTC,
+                        // Valeur du portfolio à ce moment = BTC × prix de ce jour
+                        valeur: totalBTC * trouverPrixPourDate(prixHistoriques, timestampAchat)
+                    });
+                }
+
+                document.getElementById('dcaBarre').style.width = '90%';
+
+                // --- Étape 4 : Préparer et afficher les résultats ---
+                const valeurActuelle = totalBTC * prixActuelEUR;
+                const gainEuros = valeurActuelle - totalInvesti;
+                const gainPourcent = totalInvesti > 0 ? (gainEuros / totalInvesti) * 100 : 0;
+                const prixMoyen = totalBTC > 0 ? totalInvesti / totalBTC : 0;
+
+                const resultats = {
+                    nbMois: datesAchat.length,
+                    totalInvesti: totalInvesti,
+                    totalBTC: totalBTC,
+                    valeurActuelle: valeurActuelle,
+                    gainEuros: gainEuros,
+                    gainPourcent: gainPourcent,
+                    prixMoyen: prixMoyen,
+                    historique: historiqueSimulation
+                };
+
+                // Stocke le résultat pour l'export PDF
+                dernierResultatDCA = resultats;
+
+                afficherResultatsDCA(resultats);
+
+            } catch (erreur) {
+                console.error('Erreur simulation DCA:', erreur);
+                zoneResultats.innerHTML = '<div class="dca-placeholder" style="color: var(--rouge);">'
+                    + 'Erreur : ' + erreur.message
+                    + '</div>';
+            }
+
+            bouton.disabled = false;
+            bouton.textContent = 'Calculer';
+        }
+
+        /**
+         * Trouve le prix du Bitcoin le plus proche d'une date donnée
+         * dans un tableau de [timestamp_ms, prix].
+         *
+         * @param {Array} prixHistoriques - Tableau de [timestamp_ms, prixEUR] depuis CryptoCompare
+         * @param {number} timestampCible - Le timestamp en ms de la date recherchée
+         * @returns {number} Le prix le plus proche
+         */
+        function trouverPrixPourDate(prixHistoriques, timestampCible) {
+            let meilleurIndex = 0;
+            let meilleurEcart = Infinity;
+
+            // Parcourt tous les prix et garde celui dont la date est la plus proche
+            for (let i = 0; i < prixHistoriques.length; i++) {
+                const ecart = Math.abs(prixHistoriques[i][0] - timestampCible);
+                if (ecart < meilleurEcart) {
+                    meilleurEcart = ecart;
+                    meilleurIndex = i;
+                }
+            }
+
+            return prixHistoriques[meilleurIndex][1];
+        }
+
+        /**
+         * Affiche les résultats de la simulation DCA (résumé + graphique).
+         */
+        function afficherResultatsDCA(resultats) {
+            const zone = document.getElementById('dcaZoneResultats');
+
+            // Détermine les couleurs gain/perte
+            const estPositif = resultats.gainEuros >= 0;
+            const couleurGain = estPositif ? 'var(--vert)' : 'var(--rouge)';
+            const symboleGain = estPositif ? '+' : '';
+
+            // Construit le HTML des résultats
+            let html = '<div class="dca-resultats">';
+
+            html += '<div class="resume-item">'
+                + '<div class="resume-valeur">' + resultats.nbMois + ' mois</div>'
+                + '<div class="resume-label">Durée</div>'
+                + '</div>';
+
+            html += '<div class="resume-item">'
+                + '<div class="resume-valeur">' + formaterPrix(resultats.totalInvesti, 'EUR') + '</div>'
+                + '<div class="resume-label">Total investi</div>'
+                + '</div>';
+
+            html += '<div class="resume-item">'
+                + '<div class="resume-valeur">' + resultats.totalBTC.toFixed(8) + '</div>'
+                + '<div class="resume-label">BTC accumul\u00e9s</div>'
+                + '</div>';
+
+            html += '<div class="resume-item">'
+                + '<div class="resume-valeur">' + formaterPrix(resultats.valeurActuelle, 'EUR') + '</div>'
+                + '<div class="resume-label">Valeur actuelle</div>'
+                + '</div>';
+
+            html += '<div class="resume-item">'
+                + '<div class="resume-valeur" style="color:' + couleurGain + '">'
+                + symboleGain + formaterPrix(resultats.gainEuros, 'EUR')
+                + '</div>'
+                + '<div class="resume-label">Gain / Perte</div>'
+                + '</div>';
+
+            html += '<div class="resume-item">'
+                + '<div class="resume-valeur" style="color:' + couleurGain + '">'
+                + symboleGain + resultats.gainPourcent.toFixed(2) + '%'
+                + '</div>'
+                + '<div class="resume-label">Rendement</div>'
+                + '</div>';
+
+            html += '<div class="resume-item">'
+                + '<div class="resume-valeur">' + formaterPrix(resultats.prixMoyen, 'EUR') + '</div>'
+                + '<div class="resume-label">Prix moyen d\'achat</div>'
+                + '</div>';
+
+            html += '</div>';
+
+            // Graphique DCA
+            html += '<div class="dca-graphique-conteneur">'
+                + '<canvas id="graphiqueDCA"></canvas>'
+                + '</div>';
+
+            // Légende du graphique
+            html += '<div class="dca-legende">'
+                + '<div class="dca-legende-item">'
+                + '<div class="dca-legende-couleur" style="background-color: #58a6ff"></div>'
+                + '<span>Montant investi</span>'
+                + '</div>'
+                + '<div class="dca-legende-item">'
+                + '<div class="dca-legende-couleur" style="background-color: var(--orange-bitcoin)"></div>'
+                + '<span>Valeur du portfolio</span>'
+                + '</div>'
+                + '</div>';
+
+            zone.innerHTML = html;
+
+            // Dessine le graphique après que le canvas existe dans le DOM
+            dessinerGraphiqueDCA(resultats.historique);
+        }
+
+        /**
+         * Dessine le graphique comparatif DCA :
+         * - Courbe bleue : montant investi cumulé
+         * - Courbe orange : valeur réelle du portfolio
+         *
+         * @param {Array} historique - Tableau d'objets { date, totalInvesti, valeur }
+         */
+        function dessinerGraphiqueDCA(historique) {
+            const canvas = document.getElementById('graphiqueDCA');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+
+            // Résolution haute (comme le graphique 7 jours)
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            const largeur = rect.width;
+            const hauteur = rect.height;
+
+            // Marges
+            const margeGauche = 80;
+            const margeDroite = 20;
+            const margeHaut = 20;
+            const margeBas = 40;
+            const zoneW = largeur - margeGauche - margeDroite;
+            const zoneH = hauteur - margeHaut - margeBas;
+
+            ctx.clearRect(0, 0, largeur, hauteur);
+
+            // Trouve la valeur maximale pour l'échelle Y
+            // (on prend le max entre investi et valeur)
+            let valeurMax = 0;
+            for (let i = 0; i < historique.length; i++) {
+                valeurMax = Math.max(valeurMax, historique[i].totalInvesti, historique[i].valeur);
+            }
+            // Ajoute 10% de marge en haut
+            valeurMax = valeurMax * 1.1;
+
+            // ----- LIGNES DE REPÈRE HORIZONTALES -----
+            ctx.strokeStyle = '#21262d';
+            ctx.lineWidth = 1;
+            ctx.fillStyle = '#8b949e';
+            ctx.font = '11px Segoe UI, sans-serif';
+            ctx.textAlign = 'right';
+
+            const nbLignes = 5;
+            for (let i = 0; i <= nbLignes; i++) {
+                const y = margeHaut + (i / nbLignes) * zoneH;
+                const valeur = valeurMax - (i / nbLignes) * valeurMax;
+
+                ctx.beginPath();
+                ctx.moveTo(margeGauche, y);
+                ctx.lineTo(largeur - margeDroite, y);
+                ctx.stroke();
+
+                ctx.fillText(formaterPrixCourt(valeur), margeGauche - 8, y + 4);
+            }
+
+            // ----- LABELS DES DATES (axe horizontal) -----
+            ctx.textAlign = 'center';
+            const nbLabels = Math.min(6, historique.length);
+            for (let i = 0; i < nbLabels; i++) {
+                const index = Math.floor((i / (nbLabels - 1)) * (historique.length - 1));
+                const date = historique[index].date;
+                const x = margeGauche + (index / (historique.length - 1)) * zoneW;
+
+                // Format court : "Jan 24"
+                const moisNoms = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
+                                  'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+                const label = moisNoms[date.getMonth()] + ' ' + String(date.getFullYear()).slice(2);
+                ctx.fillText(label, x, hauteur - 10);
+            }
+
+            // ----- Fonction utilitaire pour dessiner une courbe -----
+            function dessinerCourbe(donnees, propriete, couleur) {
+                ctx.strokeStyle = couleur;
+                ctx.lineWidth = 2.5;
+                ctx.lineJoin = 'round';
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+
+                for (let i = 0; i < donnees.length; i++) {
+                    const x = margeGauche + (i / (donnees.length - 1)) * zoneW;
+                    const y = margeHaut + ((valeurMax - donnees[i][propriete]) / valeurMax) * zoneH;
+
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+
+                // Dégradé sous la courbe
+                const gradient = ctx.createLinearGradient(0, margeHaut, 0, margeHaut + zoneH);
+                gradient.addColorStop(0, couleur + '20');
+                gradient.addColorStop(1, couleur + '00');
+
+                ctx.lineTo(margeGauche + zoneW, margeHaut + zoneH);
+                ctx.lineTo(margeGauche, margeHaut + zoneH);
+                ctx.closePath();
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+
+            // Dessine les deux courbes
+            // D'abord l'investi (dessous), puis la valeur (dessus)
+            dessinerCourbe(historique, 'totalInvesti', '#58a6ff');
+            dessinerCourbe(historique, 'valeur', '#F7931A');
+        }
+
+
+        // ===========================================
+        // COMPARATEUR LUMP SUM VS DCA
+        // ===========================================
+        // Compare les performances entre investir tout d'un coup
+        // et investir progressivement sur plusieurs mois.
+
+        // Initialise la date de début du comparateur à il y a 2 ans
+        (function() {
+            const ilYA2Ans = new Date();
+            ilYA2Ans.setFullYear(ilYA2Ans.getFullYear() - 2);
+            document.getElementById('compDateDebut').value = ilYA2Ans.toISOString().split('T')[0];
+        })();
+
+        /**
+         * Lance la comparaison entre Lump Sum et DCA.
+         */
+        async function lancerComparaison() {
+            const champMontant = document.getElementById('compMontant');
+            const champDate = document.getElementById('compDateDebut');
+            const champDuree = document.getElementById('compDuree');
+            const bouton = document.getElementById('boutonComparer');
+            const zoneResultats = document.getElementById('comparateurResultats');
+
+            // Récupère les valeurs
+            const montantTotal = parseFloat(champMontant.value);
+            const dateDebutStr = champDate.value;
+            const dureeMois = parseInt(champDuree.value);
+
+            // Validation
+            if (!montantTotal || montantTotal <= 0) {
+                alert('Veuillez entrer un montant valide.');
+                return;
+            }
+            if (!dateDebutStr) {
+                alert('Veuillez sélectionner une date de début.');
+                return;
+            }
+            if (!dureeMois || dureeMois < 2 || dureeMois > 120) {
+                alert('La durée doit être entre 2 et 120 mois.');
+                return;
+            }
+            if (prixActuelEUR <= 0) {
+                alert('Le prix actuel du Bitcoin n\'est pas encore chargé.');
+                return;
+            }
+
+            // Désactive le bouton et affiche la progression
+            bouton.disabled = true;
+            bouton.textContent = 'Comparaison en cours...';
+            zoneResultats.innerHTML = '<div class="dca-progression">'
+                + '<div class="icone-chargement">&#8383;</div>'
+                + '<p>Comparaison des stratégies en cours...</p>'
+                + '<div class="dca-barre-fond"><div class="dca-barre-remplissage" id="compBarre" style="width: 10%"></div></div>'
+                + '</div>';
+
+            try {
+                const dateDebut = new Date(dateDebutStr);
+                const maintenant = new Date();
+
+                // Génère les dates d'achat DCA (1er du mois)
+                const datesDCA = [];
+                let dateCourante = new Date(dateDebut.getFullYear(), dateDebut.getMonth(), 1);
+                for (let i = 0; i < dureeMois && dateCourante <= maintenant; i++) {
+                    datesDCA.push(new Date(dateCourante));
+                    dateCourante.setMonth(dateCourante.getMonth() + 1);
+                }
+
+                if (datesDCA.length === 0) {
+                    throw new Error('La date de début est dans le futur.');
+                }
+
+                document.getElementById('compBarre').style.width = '20%';
+
+                // Récupère les prix historiques via CryptoCompare
+                const joursTotal = Math.ceil((maintenant - dateDebut) / (24 * 60 * 60 * 1000));
+                let prixHistoriques = [];
+                const LIMITE_JOURS = 2000;
+                let timestampFinSec = Math.floor(maintenant.getTime() / 1000);
+
+                while (prixHistoriques.length < joursTotal) {
+                    const joursRestants = joursTotal - prixHistoriques.length;
+                    const joursARecuperer = Math.min(joursRestants, LIMITE_JOURS);
+
+                    const url = `https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=EUR&limit=${joursARecuperer}&toTs=${timestampFinSec}`;
+
+                    const reponse = await fetch(url);
+                    if (!reponse.ok) {
+                        throw new Error('Erreur API CryptoCompare');
+                    }
+
+                    const donnees = await reponse.json();
+                    if (donnees.Response !== 'Success' || !donnees.Data || !donnees.Data.Data) {
+                        throw new Error('Réponse invalide de CryptoCompare');
+                    }
+
+                    const nouveauxPrix = donnees.Data.Data.map(point => [
+                        point.time * 1000,
+                        point.close
+                    ]);
+
+                    prixHistoriques = nouveauxPrix.concat(prixHistoriques);
+
+                    if (donnees.Data.Data.length > 0) {
+                        timestampFinSec = donnees.Data.Data[0].time - 1;
+                    } else {
+                        break;
+                    }
+
+                    if (donnees.Data.Data.length < joursARecuperer) {
+                        break;
+                    }
+                }
+
+                if (prixHistoriques.length === 0) {
+                    throw new Error('Aucune donnée de prix disponible.');
+                }
+
+                document.getElementById('compBarre').style.width = '50%';
+
+                // ----- CALCUL LUMP SUM -----
+                const prixLumpSum = trouverPrixPourDate(prixHistoriques, dateDebut.getTime());
+                const btcLumpSum = montantTotal / prixLumpSum;
+                const valeurLumpSum = btcLumpSum * prixActuelEUR;
+                const gainLumpSum = valeurLumpSum - montantTotal;
+                const gainPourcentLumpSum = (gainLumpSum / montantTotal) * 100;
+
+                // Historique Lump Sum pour le graphique
+                const historiqueLumpSum = [];
+                for (let i = 0; i < datesDCA.length; i++) {
+                    const prixCeJour = trouverPrixPourDate(prixHistoriques, datesDCA[i].getTime());
+                    historiqueLumpSum.push({
+                        date: datesDCA[i],
+                        valeur: btcLumpSum * prixCeJour
+                    });
+                }
+
+                document.getElementById('compBarre').style.width = '70%';
+
+                // ----- CALCUL DCA -----
+                const montantMensuelDCA = montantTotal / dureeMois;
+                let totalBTCDCA = 0;
+                let totalInvestiDCA = 0;
+                const historiqueDCA = [];
+
+                for (let i = 0; i < datesDCA.length; i++) {
+                    const prixCeJour = trouverPrixPourDate(prixHistoriques, datesDCA[i].getTime());
+                    if (prixCeJour > 0) {
+                        const btcAchetes = montantMensuelDCA / prixCeJour;
+                        totalBTCDCA += btcAchetes;
+                        totalInvestiDCA += montantMensuelDCA;
+                    }
+                    historiqueDCA.push({
+                        date: datesDCA[i],
+                        valeur: totalBTCDCA * trouverPrixPourDate(prixHistoriques, datesDCA[i].getTime())
+                    });
+                }
+
+                const valeurDCA = totalBTCDCA * prixActuelEUR;
+                const gainDCA = valeurDCA - totalInvestiDCA;
+                const gainPourcentDCA = totalInvestiDCA > 0 ? (gainDCA / totalInvestiDCA) * 100 : 0;
+                const prixMoyenDCA = totalBTCDCA > 0 ? totalInvestiDCA / totalBTCDCA : 0;
+
+                document.getElementById('compBarre').style.width = '90%';
+
+                // Prépare les résultats
+                const resultats = {
+                    lumpSum: {
+                        montantInvesti: montantTotal,
+                        btc: btcLumpSum,
+                        prixAchat: prixLumpSum,
+                        valeurActuelle: valeurLumpSum,
+                        gainEuros: gainLumpSum,
+                        gainPourcent: gainPourcentLumpSum,
+                        historique: historiqueLumpSum
+                    },
+                    dca: {
+                        montantInvesti: totalInvestiDCA,
+                        btc: totalBTCDCA,
+                        prixMoyen: prixMoyenDCA,
+                        valeurActuelle: valeurDCA,
+                        gainEuros: gainDCA,
+                        gainPourcent: gainPourcentDCA,
+                        historique: historiqueDCA
+                    },
+                    dureeMois: datesDCA.length
+                };
+
+                // Stocke le résultat pour l'export PDF
+                dernierResultatComparateur = resultats;
+
+                afficherResultatsComparateur(resultats);
+
+            } catch (erreur) {
+                console.error('Erreur comparaison:', erreur);
+                zoneResultats.innerHTML = '<div class="comparateur-placeholder" style="color: var(--rouge);">'
+                    + 'Erreur : ' + erreur.message
+                    + '</div>';
+            }
+
+            bouton.disabled = false;
+            bouton.textContent = 'Comparer les stratégies';
+        }
+
+        /**
+         * Affiche les résultats du comparateur.
+         */
+        function afficherResultatsComparateur(resultats) {
+            const zone = document.getElementById('comparateurResultats');
+            const ls = resultats.lumpSum;
+            const dca = resultats.dca;
+
+            // Détermine le gagnant
+            const lumpSumGagne = ls.valeurActuelle > dca.valeurActuelle;
+            const difference = Math.abs(ls.valeurActuelle - dca.valeurActuelle);
+            const differencePourcent = Math.abs(ls.gainPourcent - dca.gainPourcent);
+
+            // Couleurs gain/perte
+            const couleurLumpSum = ls.gainEuros >= 0 ? 'var(--vert)' : 'var(--rouge)';
+            const couleurDCA = dca.gainEuros >= 0 ? 'var(--vert)' : 'var(--rouge)';
+            const symboleLumpSum = ls.gainEuros >= 0 ? '+' : '';
+            const symboleDCA = dca.gainEuros >= 0 ? '+' : '';
+
+            let html = '';
+
+            // ----- Cartes des stratégies -----
+            html += '<div class="comparateur-strategies">';
+
+            // Carte Lump Sum
+            html += '<div class="strategie-carte' + (lumpSumGagne ? ' gagnante' : '') + '">';
+            if (lumpSumGagne) {
+                html += '<div class="badge-gagnant">Gagnant</div>';
+            }
+            html += '<div class="strategie-titre lumpsum">';
+            html += '<span class="strategie-icone">&#9889;</span> Lump Sum';
+            html += '</div>';
+            html += '<div class="strategie-metriques">';
+            html += '<div class="metrique-item">';
+            html += '<div class="metrique-valeur">' + formaterPrix(ls.montantInvesti, 'EUR') + '</div>';
+            html += '<div class="metrique-label">Investi</div>';
+            html += '</div>';
+            html += '<div class="metrique-item">';
+            html += '<div class="metrique-valeur">' + ls.btc.toFixed(8) + '</div>';
+            html += '<div class="metrique-label">BTC</div>';
+            html += '</div>';
+            html += '<div class="metrique-item">';
+            html += '<div class="metrique-valeur">' + formaterPrix(ls.prixAchat, 'EUR') + '</div>';
+            html += '<div class="metrique-label">Prix d\'achat</div>';
+            html += '</div>';
+            html += '<div class="metrique-item">';
+            html += '<div class="metrique-valeur">' + formaterPrix(ls.valeurActuelle, 'EUR') + '</div>';
+            html += '<div class="metrique-label">Valeur actuelle</div>';
+            html += '</div>';
+            html += '<div class="metrique-item">';
+            html += '<div class="metrique-valeur" style="color:' + couleurLumpSum + '">' + symboleLumpSum + formaterPrix(ls.gainEuros, 'EUR') + '</div>';
+            html += '<div class="metrique-label">Gain/Perte</div>';
+            html += '</div>';
+            html += '<div class="metrique-item">';
+            html += '<div class="metrique-valeur" style="color:' + couleurLumpSum + '">' + symboleLumpSum + ls.gainPourcent.toFixed(2) + '%</div>';
+            html += '<div class="metrique-label">Rendement</div>';
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+
+            // Carte DCA
+            html += '<div class="strategie-carte' + (!lumpSumGagne ? ' gagnante' : '') + '">';
+            if (!lumpSumGagne) {
+                html += '<div class="badge-gagnant">Gagnant</div>';
+            }
+            html += '<div class="strategie-titre dca">';
+            html += '<span class="strategie-icone">&#128200;</span> DCA (' + resultats.dureeMois + ' mois)';
+            html += '</div>';
+            html += '<div class="strategie-metriques">';
+            html += '<div class="metrique-item">';
+            html += '<div class="metrique-valeur">' + formaterPrix(dca.montantInvesti, 'EUR') + '</div>';
+            html += '<div class="metrique-label">Investi</div>';
+            html += '</div>';
+            html += '<div class="metrique-item">';
+            html += '<div class="metrique-valeur">' + dca.btc.toFixed(8) + '</div>';
+            html += '<div class="metrique-label">BTC</div>';
+            html += '</div>';
+            html += '<div class="metrique-item">';
+            html += '<div class="metrique-valeur">' + formaterPrix(dca.prixMoyen, 'EUR') + '</div>';
+            html += '<div class="metrique-label">Prix moyen</div>';
+            html += '</div>';
+            html += '<div class="metrique-item">';
+            html += '<div class="metrique-valeur">' + formaterPrix(dca.valeurActuelle, 'EUR') + '</div>';
+            html += '<div class="metrique-label">Valeur actuelle</div>';
+            html += '</div>';
+            html += '<div class="metrique-item">';
+            html += '<div class="metrique-valeur" style="color:' + couleurDCA + '">' + symboleDCA + formaterPrix(dca.gainEuros, 'EUR') + '</div>';
+            html += '<div class="metrique-label">Gain/Perte</div>';
+            html += '</div>';
+            html += '<div class="metrique-item">';
+            html += '<div class="metrique-valeur" style="color:' + couleurDCA + '">' + symboleDCA + dca.gainPourcent.toFixed(2) + '%</div>';
+            html += '<div class="metrique-label">Rendement</div>';
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+
+            html += '</div>';
+
+            // ----- Zone de différence -----
+            html += '<div class="comparateur-difference">';
+            if (lumpSumGagne) {
+                html += '<div class="difference-texte">Le <strong>Lump Sum</strong> aurait été plus rentable</div>';
+                html += '<div class="difference-valeur" style="color: #a855f7">+' + formaterPrix(difference, 'EUR') + ' (+' + differencePourcent.toFixed(2) + '%)</div>';
+            } else {
+                html += '<div class="difference-texte">Le <strong>DCA</strong> aurait été plus rentable</div>';
+                html += '<div class="difference-valeur" style="color: var(--orange-bitcoin)">+' + formaterPrix(difference, 'EUR') + ' (+' + differencePourcent.toFixed(2) + '%)</div>';
+            }
+            html += '</div>';
+
+            // ----- Graphique -----
+            html += '<div class="comparateur-graphique-conteneur">';
+            html += '<canvas id="graphiqueComparateur"></canvas>';
+            html += '</div>';
+
+            // Légende
+            html += '<div class="comparateur-legende">';
+            html += '<div class="comparateur-legende-item">';
+            html += '<div class="comparateur-legende-couleur" style="background-color: #a855f7"></div>';
+            html += '<span>Lump Sum</span>';
+            html += '</div>';
+            html += '<div class="comparateur-legende-item">';
+            html += '<div class="comparateur-legende-couleur" style="background-color: var(--orange-bitcoin)"></div>';
+            html += '<span>DCA</span>';
+            html += '</div>';
+            html += '</div>';
+
+            // Note pédagogique
+            html += '<div class="comparateur-note">';
+            html += 'Les performances passées ne garantissent pas les résultats futurs. Ceci n\'est pas un conseil financier.';
+            html += '</div>';
+
+            zone.innerHTML = html;
+
+            // Dessine le graphique
+            dessinerGraphiqueComparateur(resultats.lumpSum.historique, resultats.dca.historique);
+        }
+
+        /**
+         * Dessine le graphique comparatif Lump Sum vs DCA.
+         */
+        function dessinerGraphiqueComparateur(historiqueLumpSum, historiqueDCA) {
+            const canvas = document.getElementById('graphiqueComparateur');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+
+            // Résolution haute
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            const largeur = rect.width;
+            const hauteur = rect.height;
+
+            // Marges
+            const margeGauche = 80;
+            const margeDroite = 20;
+            const margeHaut = 20;
+            const margeBas = 40;
+            const zoneW = largeur - margeGauche - margeDroite;
+            const zoneH = hauteur - margeHaut - margeBas;
+
+            ctx.clearRect(0, 0, largeur, hauteur);
+
+            // Trouve la valeur maximale
+            let valeurMax = 0;
+            for (let i = 0; i < historiqueLumpSum.length; i++) {
+                valeurMax = Math.max(valeurMax, historiqueLumpSum[i].valeur, historiqueDCA[i].valeur);
+            }
+            valeurMax = valeurMax * 1.1;
+
+            // ----- Lignes de repère -----
+            ctx.strokeStyle = '#21262d';
+            ctx.lineWidth = 1;
+            ctx.fillStyle = '#8b949e';
+            ctx.font = '11px Segoe UI, sans-serif';
+            ctx.textAlign = 'right';
+
+            const nbLignes = 5;
+            for (let i = 0; i <= nbLignes; i++) {
+                const y = margeHaut + (i / nbLignes) * zoneH;
+                const valeur = valeurMax - (i / nbLignes) * valeurMax;
+
+                ctx.beginPath();
+                ctx.moveTo(margeGauche, y);
+                ctx.lineTo(largeur - margeDroite, y);
+                ctx.stroke();
+
+                ctx.fillText(formaterPrixCourt(valeur), margeGauche - 8, y + 4);
+            }
+
+            // ----- Labels dates -----
+            ctx.textAlign = 'center';
+            const nbLabels = Math.min(6, historiqueLumpSum.length);
+            for (let i = 0; i < nbLabels; i++) {
+                const index = Math.floor((i / (nbLabels - 1)) * (historiqueLumpSum.length - 1));
+                const date = historiqueLumpSum[index].date;
+                const x = margeGauche + (index / (historiqueLumpSum.length - 1)) * zoneW;
+
+                const moisNoms = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
+                                  'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+                const label = moisNoms[date.getMonth()] + ' ' + String(date.getFullYear()).slice(2);
+                ctx.fillText(label, x, hauteur - 10);
+            }
+
+            // ----- Fonction pour dessiner une courbe -----
+            function dessinerCourbe(donnees, couleur) {
+                ctx.strokeStyle = couleur;
+                ctx.lineWidth = 2.5;
+                ctx.lineJoin = 'round';
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+
+                for (let i = 0; i < donnees.length; i++) {
+                    const x = margeGauche + (i / (donnees.length - 1)) * zoneW;
+                    const y = margeHaut + ((valeurMax - donnees[i].valeur) / valeurMax) * zoneH;
+
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+
+                // Dégradé
+                const gradient = ctx.createLinearGradient(0, margeHaut, 0, margeHaut + zoneH);
+                gradient.addColorStop(0, couleur + '20');
+                gradient.addColorStop(1, couleur + '00');
+
+                ctx.lineTo(margeGauche + zoneW, margeHaut + zoneH);
+                ctx.lineTo(margeGauche, margeHaut + zoneH);
+                ctx.closePath();
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+
+            // Dessine les courbes
+            dessinerCourbe(historiqueLumpSum, '#a855f7');
+            dessinerCourbe(historiqueDCA, '#F7931A');
+        }
+
+
+        // ===========================================
+        // EXPORT PDF
+        // ===========================================
+        // Genere un rapport PDF complet avec toutes les donnees
+        // de l'application (portfolio, DCA, comparateur).
+
+        /**
+         * Exporte toutes les donnees en PDF.
+         */
+        async function exporterPDF() {
+            const bouton = document.getElementById('boutonExportPDF');
+            const statut = document.getElementById('pdfStatut');
+
+            // Desactive le bouton
+            bouton.disabled = true;
+            bouton.innerHTML = '<span class="icone">&#8987;</span> Generation en cours...';
+
+            // Affiche le statut
+            statut.className = 'pdf-statut en-cours';
+            statut.textContent = 'Generation du PDF en cours...';
+
+            try {
+                // Verifie que jsPDF est charge
+                if (typeof window.jspdf === 'undefined') {
+                    throw new Error('La bibliotheque jsPDF n\'est pas chargee');
+                }
+
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+
+                // Configuration de la police
+                pdf.setFont('helvetica', 'normal');
+
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 20;
+                const contentWidth = pageWidth - (margin * 2);
+
+                // Couleurs RGB
+                const orangeBTC = [247, 147, 26];
+                const noir = [33, 33, 33];
+                const gris = [120, 120, 120];
+                const grisClair = [200, 200, 200];
+                const vert = [16, 185, 129];
+                const rouge = [220, 53, 69];
+                const violet = [168, 85, 247];
+
+                // Date de generation
+                const maintenant = new Date();
+                const dateGeneration = maintenant.toLocaleDateString('fr-FR') + ' a ' + maintenant.toLocaleTimeString('fr-FR');
+                const dateFichier = maintenant.toISOString().split('T')[0];
+
+                // Compteur de pages pour le footer
+                let totalPages = 1;
+                if (achats.length > 0) totalPages++;
+                if (dernierResultatDCA) totalPages++;
+                if (dernierResultatComparateur) totalPages++;
+                let pageActuelle = 1;
+
+                // ===== PAGE 1 : VUE D'ENSEMBLE =====
+                let y = margin;
+
+                // === EN-TETE ===
+                pdf.setFontSize(28);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(...orangeBTC);
+                pdf.text('BITCOIN TRACKER', pageWidth / 2, y, { align: 'center' });
+                y += 10;
+
+                pdf.setFontSize(14);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setTextColor(...gris);
+                pdf.text('Rapport d\'Investissement', pageWidth / 2, y, { align: 'center' });
+                y += 8;
+
+                // Date a droite
+                pdf.setFontSize(9);
+                pdf.text(dateGeneration, pageWidth - margin, y, { align: 'right' });
+                y += 5;
+
+                // Ligne de separation orange
+                pdf.setDrawColor(...orangeBTC);
+                pdf.setLineWidth(0.8);
+                pdf.line(margin, y, pageWidth - margin, y);
+                y += 15;
+
+                // === SECTION PRIX ACTUEL ===
+                pdf.setFontSize(14);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(...orangeBTC);
+                pdf.text('Prix Actuel du Bitcoin', margin, y);
+                y += 10;
+
+                pdf.setFont('helvetica', 'normal');
+
+                if (prixActuelEUR > 0) {
+                    // Prix EUR en gros
+                    pdf.setFontSize(22);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...noir);
+                    pdf.text(formaterMontantPDF(prixActuelEUR) + ' EUR', margin, y);
+                    y += 9;
+
+                    // Prix USD
+                    pdf.setFontSize(14);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setTextColor(...gris);
+                    pdf.text(formaterMontantPDF(prixActuelUSD) + ' USD', margin, y);
+                    y += 8;
+
+                    // Variation 24h
+                    try {
+                        const prixCache = localStorage.getItem('btc_prix');
+                        if (prixCache) {
+                            const donnees = JSON.parse(prixCache);
+                            if (donnees.eur_24h_change !== undefined) {
+                                const variation = donnees.eur_24h_change;
+                                const estPositif = variation >= 0;
+                                pdf.setTextColor(...(estPositif ? vert : rouge));
+                                pdf.setFontSize(12);
+                                pdf.text('Variation 24h : ' + (estPositif ? '+' : '') + variation.toFixed(2) + '%', margin, y);
+                            }
+                        }
+                    } catch (e) {}
+                } else {
+                    pdf.setFontSize(12);
+                    pdf.setTextColor(...gris);
+                    pdf.text('Prix non disponible', margin, y);
+                }
+                y += 18;
+
+                // === SECTION MON PORTFOLIO ===
+                pdf.setFontSize(14);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(...orangeBTC);
+                pdf.text('Mon Portfolio', margin, y);
+                y += 10;
+
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(11);
+
+                if (achats.length > 0) {
+                    let totalInvesti = 0;
+                    let totalBTC = 0;
+                    for (let i = 0; i < achats.length; i++) {
+                        totalInvesti += achats[i].montant;
+                        totalBTC += achats[i].quantiteBTC;
+                    }
+                    const valeurActuelle = totalBTC * prixActuelEUR;
+                    const gain = valeurActuelle - totalInvesti;
+                    const gainPourcent = totalInvesti > 0 ? (gain / totalInvesti) * 100 : 0;
+
+                    // Tableau de donnees portfolio
+                    const col1 = margin;
+                    const col2 = margin + 65;
+
+                    pdf.setTextColor(...gris);
+                    pdf.text('Investissement total:', col1, y);
+                    pdf.setTextColor(...noir);
+                    pdf.text(formaterMontantPDF(totalInvesti) + ' EUR', col2, y);
+                    y += 7;
+
+                    pdf.setTextColor(...gris);
+                    pdf.text('BTC possedes:', col1, y);
+                    pdf.setTextColor(...noir);
+                    pdf.text(totalBTC.toFixed(8) + ' BTC', col2, y);
+                    y += 7;
+
+                    pdf.setTextColor(...gris);
+                    pdf.text('Valeur actuelle:', col1, y);
+                    pdf.setTextColor(...noir);
+                    pdf.text(formaterMontantPDF(valeurActuelle) + ' EUR', col2, y);
+                    y += 7;
+
+                    pdf.setTextColor(...gris);
+                    pdf.text('Gain/Perte:', col1, y);
+                    pdf.setTextColor(...(gain >= 0 ? vert : rouge));
+                    const symbole = gain >= 0 ? '+' : '';
+                    pdf.text(symbole + formaterMontantPDF(gain) + ' EUR (' + symbole + gainPourcent.toFixed(2) + '%)', col2, y);
+                } else {
+                    pdf.setTextColor(...gris);
+                    pdf.text('Aucun achat enregistre', margin, y);
+                }
+                y += 18;
+
+                // === GRAPHIQUE 7 JOURS ===
+                pdf.setFontSize(14);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(...orangeBTC);
+                pdf.text('Evolution sur 7 jours', margin, y);
+                y += 8;
+
+                try {
+                    const canvas7j = document.getElementById('graphiquePrix');
+                    if (canvas7j) {
+                        const imgData = canvas7j.toDataURL('image/png', 1.0);
+                        const imgWidth = 150;
+                        const imgHeight = (canvas7j.height / canvas7j.width) * imgWidth / window.devicePixelRatio;
+                        const imgX = (pageWidth - imgWidth) / 2;
+                        pdf.addImage(imgData, 'PNG', imgX, y, imgWidth, Math.min(imgHeight, 55));
+                        y += Math.min(imgHeight, 55) + 5;
+                    }
+                } catch (e) {
+                    console.warn('Graphique 7j non capture:', e);
+                }
+
+                // Footer page 1
+                ajouterFooterPDFv2(pdf, pageWidth, pageHeight, margin, dateGeneration, pageActuelle, totalPages);
+
+                // ===== PAGE 2 : DETAIL DES ACHATS =====
+                if (achats.length > 0) {
+                    pdf.addPage();
+                    pageActuelle++;
+                    y = margin;
+
+                    // Titre
+                    pdf.setFontSize(18);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...orangeBTC);
+                    pdf.text('Detail de mes achats', margin, y);
+                    y += 5;
+
+                    // Ligne orange
+                    pdf.setDrawColor(...orangeBTC);
+                    pdf.setLineWidth(0.5);
+                    pdf.line(margin, y, pageWidth - margin, y);
+                    y += 12;
+
+                    // En-tetes du tableau
+                    pdf.setFontSize(10);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...gris);
+
+                    const colDate = margin;
+                    const colMontant = margin + 40;
+                    const colPrix = margin + 85;
+                    const colBTC = margin + 130;
+
+                    pdf.text('Date', colDate, y);
+                    pdf.text('Montant', colMontant, y);
+                    pdf.text('Prix BTC', colPrix, y);
+                    pdf.text('BTC Obtenus', colBTC, y);
+                    y += 3;
+
+                    // Ligne sous en-tete
+                    pdf.setDrawColor(...grisClair);
+                    pdf.setLineWidth(0.3);
+                    pdf.line(margin, y, pageWidth - margin, y);
+                    y += 6;
+
+                    // Donnees
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setTextColor(...noir);
+                    let totalInvesti = 0;
+                    let totalBTC = 0;
+
+                    const achatsTriesParDate = [...achats].sort((a, b) => a.date.localeCompare(b.date));
+
+                    for (let i = 0; i < achatsTriesParDate.length; i++) {
+                        const achat = achatsTriesParDate[i];
+
+                        if (y > pageHeight - 45) {
+                            ajouterFooterPDFv2(pdf, pageWidth, pageHeight, margin, dateGeneration, pageActuelle, totalPages);
+                            pdf.addPage();
+                            pageActuelle++;
+                            y = margin + 10;
+                        }
+
+                        pdf.setFontSize(10);
+                        pdf.text(formaterDatePDFv2(achat.date), colDate, y);
+                        pdf.text(formaterMontantPDF(achat.montant) + ' EUR', colMontant, y);
+                        pdf.text(formaterMontantPDF(achat.prixBTC) + ' EUR', colPrix, y);
+                        pdf.text(achat.quantiteBTC.toFixed(8), colBTC, y);
+                        y += 7;
+
+                        totalInvesti += achat.montant;
+                        totalBTC += achat.quantiteBTC;
+                    }
+
+                    // Ligne de total
+                    y += 3;
+                    pdf.setDrawColor(...grisClair);
+                    pdf.line(margin, y, pageWidth - margin, y);
+                    y += 6;
+
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(...orangeBTC);
+                    pdf.text('TOTAL', colDate, y);
+                    pdf.setTextColor(...noir);
+                    pdf.text(formaterMontantPDF(totalInvesti) + ' EUR', colMontant, y);
+                    pdf.text(totalBTC.toFixed(8) + ' BTC', colBTC, y);
+
+                    ajouterFooterPDFv2(pdf, pageWidth, pageHeight, margin, dateGeneration, pageActuelle, totalPages);
+                }
+
+                // ===== PAGE 3 : SIMULATION DCA =====
+                if (dernierResultatDCA) {
+                    pdf.addPage();
+                    pageActuelle++;
+                    y = margin;
+
+                    const dca = dernierResultatDCA;
+
+                    // Titre
+                    pdf.setFontSize(18);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...orangeBTC);
+                    pdf.text('Simulation DCA Historique', margin, y);
+                    y += 5;
+
+                    pdf.setDrawColor(...orangeBTC);
+                    pdf.setLineWidth(0.5);
+                    pdf.line(margin, y, pageWidth - margin, y);
+                    y += 15;
+
+                    // Parametres
+                    pdf.setFontSize(12);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...gris);
+                    pdf.text('Parametres de simulation', margin, y);
+                    y += 8;
+
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(...noir);
+                    pdf.text('Duree: ' + dca.nbMois + ' mois', margin + 5, y);
+                    y += 15;
+
+                    // Resultats
+                    pdf.setFontSize(12);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...gris);
+                    pdf.text('Resultats', margin, y);
+                    y += 10;
+
+                    const col1 = margin + 5;
+                    const col2 = margin + 70;
+
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(11);
+
+                    pdf.setTextColor(...gris);
+                    pdf.text('Total investi:', col1, y);
+                    pdf.setTextColor(...noir);
+                    pdf.text(formaterMontantPDF(dca.totalInvesti) + ' EUR', col2, y);
+                    y += 7;
+
+                    pdf.setTextColor(...gris);
+                    pdf.text('BTC accumules:', col1, y);
+                    pdf.setTextColor(...noir);
+                    pdf.text(dca.totalBTC.toFixed(8) + ' BTC', col2, y);
+                    y += 7;
+
+                    pdf.setTextColor(...gris);
+                    pdf.text('Valeur actuelle:', col1, y);
+                    pdf.setTextColor(...noir);
+                    pdf.text(formaterMontantPDF(dca.valeurActuelle) + ' EUR', col2, y);
+                    y += 7;
+
+                    pdf.setTextColor(...gris);
+                    pdf.text('Gain/Perte:', col1, y);
+                    pdf.setTextColor(...(dca.gainEuros >= 0 ? vert : rouge));
+                    const symboleDCA = dca.gainEuros >= 0 ? '+' : '';
+                    pdf.text(symboleDCA + formaterMontantPDF(dca.gainEuros) + ' EUR (' + symboleDCA + dca.gainPourcent.toFixed(2) + '%)', col2, y);
+                    y += 7;
+
+                    pdf.setTextColor(...gris);
+                    pdf.text('Prix moyen:', col1, y);
+                    pdf.setTextColor(...noir);
+                    pdf.text(formaterMontantPDF(dca.prixMoyen) + ' EUR', col2, y);
+                    y += 18;
+
+                    // Graphique DCA
+                    try {
+                        const canvasDCA = document.getElementById('graphiqueDCA');
+                        if (canvasDCA) {
+                            pdf.setFontSize(12);
+                            pdf.setFont('helvetica', 'bold');
+                            pdf.setTextColor(...orangeBTC);
+                            pdf.text('Graphique DCA', margin, y);
+                            y += 8;
+
+                            const imgData = canvasDCA.toDataURL('image/png', 1.0);
+                            const imgWidth = 150;
+                            const imgHeight = (canvasDCA.height / canvasDCA.width) * imgWidth / window.devicePixelRatio;
+                            const imgX = (pageWidth - imgWidth) / 2;
+                            pdf.addImage(imgData, 'PNG', imgX, y, imgWidth, Math.min(imgHeight, 70));
+                        }
+                    } catch (e) {
+                        console.warn('Graphique DCA non capture:', e);
+                    }
+
+                    ajouterFooterPDFv2(pdf, pageWidth, pageHeight, margin, dateGeneration, pageActuelle, totalPages);
+                }
+
+                // ===== PAGE 4 : COMPARAISON =====
+                if (dernierResultatComparateur) {
+                    pdf.addPage();
+                    pageActuelle++;
+                    y = margin;
+
+                    const comp = dernierResultatComparateur;
+                    const ls = comp.lumpSum;
+                    const dca = comp.dca;
+                    const lumpSumGagne = ls.valeurActuelle > dca.valeurActuelle;
+
+                    // Titre
+                    pdf.setFontSize(18);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...orangeBTC);
+                    pdf.text('Comparaison des Strategies', margin, y);
+                    y += 5;
+
+                    pdf.setDrawColor(...orangeBTC);
+                    pdf.setLineWidth(0.5);
+                    pdf.line(margin, y, pageWidth - margin, y);
+                    y += 15;
+
+                    // === LUMP SUM ===
+                    pdf.setFontSize(14);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...violet);
+                    let titreLumpSum = 'LUMP SUM';
+                    if (lumpSumGagne) titreLumpSum += ' - GAGNANT';
+                    pdf.text(titreLumpSum, margin, y);
+                    y += 10;
+
+                    const col1 = margin + 5;
+                    const col2 = margin + 60;
+
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(10);
+
+                    pdf.setTextColor(...gris);
+                    pdf.text('BTC obtenus:', col1, y);
+                    pdf.setTextColor(...noir);
+                    pdf.text(ls.btc.toFixed(8) + ' BTC', col2, y);
+                    y += 6;
+
+                    pdf.setTextColor(...gris);
+                    pdf.text('Valeur actuelle:', col1, y);
+                    pdf.setTextColor(...noir);
+                    pdf.text(formaterMontantPDF(ls.valeurActuelle) + ' EUR', col2, y);
+                    y += 6;
+
+                    pdf.setTextColor(...gris);
+                    pdf.text('Performance:', col1, y);
+                    pdf.setTextColor(...(ls.gainEuros >= 0 ? vert : rouge));
+                    const symboleLS = ls.gainEuros >= 0 ? '+' : '';
+                    pdf.text(symboleLS + ls.gainPourcent.toFixed(2) + '%', col2, y);
+                    y += 15;
+
+                    // === DCA ===
+                    pdf.setFontSize(14);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...orangeBTC);
+                    let titreDCA = 'DCA (' + comp.dureeMois + ' mois)';
+                    if (!lumpSumGagne) titreDCA += ' - GAGNANT';
+                    pdf.text(titreDCA, margin, y);
+                    y += 10;
+
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(10);
+
+                    pdf.setTextColor(...gris);
+                    pdf.text('BTC obtenus:', col1, y);
+                    pdf.setTextColor(...noir);
+                    pdf.text(dca.btc.toFixed(8) + ' BTC', col2, y);
+                    y += 6;
+
+                    pdf.setTextColor(...gris);
+                    pdf.text('Valeur actuelle:', col1, y);
+                    pdf.setTextColor(...noir);
+                    pdf.text(formaterMontantPDF(dca.valeurActuelle) + ' EUR', col2, y);
+                    y += 6;
+
+                    pdf.setTextColor(...gris);
+                    pdf.text('Performance:', col1, y);
+                    pdf.setTextColor(...(dca.gainEuros >= 0 ? vert : rouge));
+                    const symboleDCAComp = dca.gainEuros >= 0 ? '+' : '';
+                    pdf.text(symboleDCAComp + dca.gainPourcent.toFixed(2) + '%', col2, y);
+                    y += 18;
+
+                    // === CONCLUSION ===
+                    const difference = Math.abs(ls.valeurActuelle - dca.valeurActuelle);
+                    const differencePourcent = Math.abs(ls.gainPourcent - dca.gainPourcent);
+
+                    pdf.setFontSize(12);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...orangeBTC);
+                    pdf.text('Conclusion', margin, y);
+                    y += 10;
+
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(...noir);
+
+                    if (lumpSumGagne) {
+                        pdf.text('Le Lump Sum aurait ete meilleur de ' + formaterMontantPDF(difference) + ' EUR', margin, y);
+                        y += 6;
+                        pdf.text('soit +' + differencePourcent.toFixed(2) + '% de performance supplementaire.', margin, y);
+                    } else {
+                        pdf.text('Le DCA aurait ete meilleur de ' + formaterMontantPDF(difference) + ' EUR', margin, y);
+                        y += 6;
+                        pdf.text('soit +' + differencePourcent.toFixed(2) + '% de performance supplementaire.', margin, y);
+                    }
+                    y += 18;
+
+                    // Graphique comparateur
+                    try {
+                        const canvasComp = document.getElementById('graphiqueComparateur');
+                        if (canvasComp) {
+                            pdf.setFontSize(12);
+                            pdf.setFont('helvetica', 'bold');
+                            pdf.setTextColor(...orangeBTC);
+                            pdf.text('Graphique Comparatif', margin, y);
+                            y += 8;
+
+                            const imgData = canvasComp.toDataURL('image/png', 1.0);
+                            const imgWidth = 150;
+                            const imgHeight = (canvasComp.height / canvasComp.width) * imgWidth / window.devicePixelRatio;
+                            const imgX = (pageWidth - imgWidth) / 2;
+                            pdf.addImage(imgData, 'PNG', imgX, y, imgWidth, Math.min(imgHeight, 60));
+                        }
+                    } catch (e) {
+                        console.warn('Graphique comparateur non capture:', e);
+                    }
+
+                    ajouterFooterPDFv2(pdf, pageWidth, pageHeight, margin, dateGeneration, pageActuelle, totalPages);
+                }
+
+                // Telecharge le PDF
+                pdf.save('bitcoin-tracker-rapport-' + dateFichier + '.pdf');
+
+                // Affiche le succes
+                statut.className = 'pdf-statut succes';
+                statut.textContent = 'PDF telecharge avec succes !';
+
+                setTimeout(function() {
+                    statut.className = 'pdf-statut';
+                    statut.textContent = '';
+                }, 3000);
+
+            } catch (erreur) {
+                console.error('Erreur export PDF:', erreur);
+                statut.className = 'pdf-statut erreur';
+                statut.textContent = 'Erreur lors de la generation du PDF';
+            }
+
+            // Reactive le bouton
+            bouton.disabled = false;
+            bouton.innerHTML = '<span class="icone">&#128229;</span> Exporter en PDF';
+        }
+
+        /**
+         * Ajoute le footer sur chaque page du PDF (version 2).
+         */
+        function ajouterFooterPDFv2(pdf, pageWidth, pageHeight, margin, dateGeneration, pageActuelle, totalPages) {
+            // Ligne de separation
+            pdf.setDrawColor(200, 200, 200);
+            pdf.setLineWidth(0.3);
+            pdf.line(margin, pageHeight - 18, pageWidth - margin, pageHeight - 18);
+
+            pdf.setFontSize(8);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(130, 130, 130);
+
+            // Gauche : Bitcoin Tracker
+            pdf.text('Bitcoin Tracker', margin, pageHeight - 12);
+
+            // Centre : Page X/Y
+            pdf.text('Page ' + pageActuelle + '/' + totalPages, pageWidth / 2, pageHeight - 12, { align: 'center' });
+
+            // Droite : Date
+            pdf.text(dateGeneration, pageWidth - margin, pageHeight - 12, { align: 'right' });
+
+            // Note legale centree
+            pdf.setFontSize(7);
+            pdf.setTextColor(150, 150, 150);
+            pdf.text('Les performances passees ne garantissent pas les resultats futurs.', pageWidth / 2, pageHeight - 7, { align: 'center' });
+        }
+
+        /**
+         * Formate un montant pour le PDF avec espaces des milliers.
+         * Ex: 74133.50 -> "74 133,50"
+         */
+        function formaterMontantPDF(montant) {
+            // Arrondit a 2 decimales
+            const nombre = Math.round(montant * 100) / 100;
+
+            // Separe partie entiere et decimale
+            const parties = nombre.toFixed(2).split('.');
+            let partieEntiere = parties[0];
+            const partieDecimale = parties[1];
+
+            // Ajoute les espaces pour les milliers
+            let resultat = '';
+            let compteur = 0;
+            for (let i = partieEntiere.length - 1; i >= 0; i--) {
+                if (compteur > 0 && compteur % 3 === 0) {
+                    resultat = ' ' + resultat;
+                }
+                resultat = partieEntiere[i] + resultat;
+                compteur++;
+            }
+
+            return resultat + ',' + partieDecimale;
+        }
+
+        /**
+         * Formate une date ISO pour le PDF.
+         * Ex: "2024-01-15" -> "15/01/2024"
+         */
+        function formaterDatePDFv2(dateISO) {
+            const parties = dateISO.split('-');
+            return parties[2] + '/' + parties[1] + '/' + parties[0];
+        }
+
+
+        // ===========================================
+        // LANCEMENT DE L'APPLICATION
+        // ===========================================
+
+        // Initialise le switch de devise avec la préférence sauvegardée
+        initialiserDevise();
+
+        // Charge les achats sauvegardés et affiche le portfolio
+        chargerAchats();
+        afficherPortfolio();
+
+        // Charge les données de prix dès que la page s'ouvre
+        rafraichirDonnees();
+
+        // =============================================
+        // MODAL "COMMENT ÇA MARCHE ?"
+        // =============================================
+
+        function ouvrirModalAide() {
+            document.getElementById('modalAide').classList.add('visible');
+            document.body.style.overflow = 'hidden'; // Empêche le scroll de la page
+        }
+
+        function fermerModalAide() {
+            document.getElementById('modalAide').classList.remove('visible');
+            document.body.style.overflow = ''; // Réactive le scroll
+        }
+
+        // Ferme le modal si on clique en dehors du contenu
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('modalAide');
+            if (e.target === modal) {
+                fermerModalAide();
+            }
+        });
+
+        // Ferme le modal avec la touche Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                fermerModalAide();
+            }
+        });
+    </script>
+
+    <!-- MODAL COMMENT ÇA MARCHE -->
+    <div id="modalAide" class="modal-overlay">
+        <div class="modal-contenu">
+            <button class="modal-fermer" onclick="fermerModalAide()" title="Fermer">&times;</button>
+
+            <h2 class="modal-titre-principal">🎯 COMMENT UTILISER BITCOIN TRACKER</h2>
+
+            <p class="modal-intro">
+                👋 Bienvenue sur votre tracker Bitcoin !<br>
+                Cet outil gratuit vous aide à suivre vos investissements Bitcoin et à comprendre différentes stratégies d'achat.
+            </p>
+
+            <!-- Section 1 -->
+            <div class="modal-section">
+                <h3 class="modal-section-titre">📊 1. SUIVRE LE PRIX EN TEMPS RÉEL</h3>
+                <p>En haut de la page, vous voyez :</p>
+                <ul>
+                    <li>Le prix actuel du Bitcoin en euros et dollars</li>
+                    <li>La variation sur 24 heures (en vert si ça monte, en rouge si ça baisse)</li>
+                    <li>Un graphique montrant l'évolution sur 7 jours</li>
+                    <li>Un calculateur rapide : "Si j'investis X euros, j'obtiens combien de BTC ?"</li>
+                </ul>
+                <div class="modal-encadre">
+                    <p class="modal-astuce">💡 Astuce : Cliquez sur "Rafraîchir les données" pour mettre à jour les prix.</p>
+                </div>
+            </div>
+
+            <!-- Section 2 -->
+            <div class="modal-section">
+                <h3 class="modal-section-titre">💼 2. GÉRER VOTRE PORTFOLIO PERSONNEL</h3>
+                <p>Cette section vous permet de suivre vos vrais investissements :</p>
+
+                <div class="modal-encadre">
+                    <p><strong>📝 Pour ajouter un achat :</strong></p>
+                    <ol>
+                        <li>Cliquez sur "Ajouter cet achat"</li>
+                        <li>Entrez la date d'achat</li>
+                        <li>Entrez le montant investi en euros</li>
+                        <li>Le prix du Bitcoin sera récupéré automatiquement</li>
+                        <li>Validez !</li>
+                    </ol>
+                </div>
+
+                <p><strong>📈 Vous verrez instantanément :</strong></p>
+                <ul>
+                    <li>Votre investissement total</li>
+                    <li>Combien de Bitcoin vous possédez</li>
+                    <li>La valeur actuelle de votre portfolio</li>
+                    <li>Votre gain ou perte (en vert si positif, rouge si négatif)</li>
+                </ul>
+                <p>🗑️ Vous pouvez supprimer un achat en cliquant sur "Supprimer"</p>
+                <p class="modal-astuce">💾 Vos données sont sauvegardées dans votre navigateur. Personne d'autre ne peut les voir !</p>
+            </div>
+
+            <!-- Section 3 -->
+            <div class="modal-section">
+                <h3 class="modal-section-titre">📅 3. SIMULER UN INVESTISSEMENT RÉGULIER (DCA)</h3>
+                <p>Le DCA (Dollar Cost Averaging) = investir le même montant à intervalles réguliers.</p>
+
+                <div class="modal-encadre">
+                    <p><strong>🎮 Pour faire une simulation :</strong></p>
+                    <ol>
+                        <li>Choisissez un montant mensuel (ex : 100€)</li>
+                        <li>Choisissez une date de début (ex : janvier 2020)</li>
+                        <li>Choisissez le jour du mois (par défaut le 1er)</li>
+                        <li>Cliquez sur "Calculer"</li>
+                    </ol>
+                </div>
+
+                <p><strong>📊 L'outil va simuler un achat chaque mois et vous montrer :</strong></p>
+                <ul>
+                    <li>Combien vous auriez investi au total</li>
+                    <li>Combien de Bitcoin vous auriez accumulé</li>
+                    <li>La valeur actuelle</li>
+                    <li>Votre gain ou perte</li>
+                    <li>Un graphique montrant l'évolution</li>
+                </ul>
+                <p class="modal-astuce">💡 C'est parfait pour voir ce qui se serait passé SI vous aviez investi régulièrement dans le passé.</p>
+            </div>
+
+            <!-- Section 4 -->
+            <div class="modal-section">
+                <h3 class="modal-section-titre">⚖️ 4. COMPARER DEUX STRATÉGIES</h3>
+                <p>Quelle est la meilleure façon d'investir ? Tout d'un coup ou progressivement ?</p>
+                <p>Le comparateur répond à cette question :</p>
+                <ol>
+                    <li>Entrez un montant total (ex : 5000€)</li>
+                    <li>Choisissez une date de début</li>
+                    <li>Choisissez une durée pour le DCA</li>
+                    <li>Cliquez sur "Comparer"</li>
+                </ol>
+
+                <div class="modal-encadre">
+                    <p><strong>🏆 L'outil compare :</strong></p>
+                    <ul>
+                        <li><strong>LUMP SUM</strong> = investir tout d'un coup</li>
+                        <li><strong>DCA</strong> = investir petit à petit chaque mois</li>
+                    </ul>
+                    <p>Vous verrez quelle stratégie aurait été la plus rentable !</p>
+                </div>
+            </div>
+
+            <!-- Section 5 -->
+            <div class="modal-section">
+                <h3 class="modal-section-titre">📥 5. EXPORTER VOS RÉSULTATS EN PDF</h3>
+                <p>Cliquez sur "📥 Exporter en PDF" pour télécharger un rapport complet avec :</p>
+                <ul>
+                    <li>Tous vos achats</li>
+                    <li>Vos simulations DCA</li>
+                    <li>Vos comparaisons de stratégies</li>
+                    <li>Les graphiques</li>
+                </ul>
+                <p class="modal-astuce">Parfait pour garder un historique ou partager avec votre conseiller !</p>
+            </div>
+
+            <!-- FAQ -->
+            <div class="modal-section">
+                <h3 class="modal-section-titre">❓ QUESTIONS FRÉQUENTES</h3>
+
+                <div class="modal-faq">
+                    <p class="modal-faq-q">Q : Mes données sont-elles sécurisées ?</p>
+                    <p class="modal-faq-r">R : Oui ! Tout reste dans votre navigateur. Rien n'est envoyé à un serveur.</p>
+                </div>
+
+                <div class="modal-faq">
+                    <p class="modal-faq-q">Q : Les prix sont-ils en temps réel ?</p>
+                    <p class="modal-faq-r">R : Oui, mis à jour toutes les minutes via des APIs fiables.</p>
+                </div>
+
+                <div class="modal-faq">
+                    <p class="modal-faq-q">Q : Puis-je utiliser cet outil pour d'autres cryptos ?</p>
+                    <p class="modal-faq-r">R : Ici c'est Bitcoin Only ! 🧡</p>
+                </div>
+
+                <div class="modal-faq">
+                    <p class="modal-faq-q">Q : C'est vraiment gratuit ?</p>
+                    <p class="modal-faq-r">R : Oui, 100% gratuit. Si vous aimez l'outil, partagez-le autour de vous !</p>
+                </div>
+            </div>
+
+            <!-- Termes -->
+            <div class="modal-section">
+                <h3 class="modal-section-titre">🎓 TERMES À CONNAÎTRE</h3>
+                <div class="modal-termes">
+                    <div class="modal-terme">
+                        <strong>BTC</strong><br>
+                        <span>Abréviation de Bitcoin</span>
+                    </div>
+                    <div class="modal-terme">
+                        <strong>DCA</strong><br>
+                        <span>Dollar Cost Averaging = investir régulièrement le même montant</span>
+                    </div>
+                    <div class="modal-terme">
+                        <strong>Lump Sum</strong><br>
+                        <span>Investir tout son capital d'un seul coup</span>
+                    </div>
+                    <div class="modal-terme">
+                        <strong>HODL</strong><br>
+                        <span>"Hold On for Dear Life" = garder ses Bitcoins à long terme</span>
+                    </div>
+                    <div class="modal-terme">
+                        <strong>DYOR</strong><br>
+                        <span>"Do Your Own Research" = faites vos propres recherches avant d'investir</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer">
+                <p>🚀 Vous êtes prêt ! Commencez par ajouter un achat dans votre portfolio ou faites une simulation DCA pour voir la puissance du Bitcoin à long terme.</p>
+                <button class="bouton-compris" onclick="fermerModalAide()">J'ai compris !</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

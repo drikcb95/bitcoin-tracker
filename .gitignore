@@ -1,0 +1,10 @@
+# Fichiers Claude Code
+.claude/
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Fichiers temporaires
+*.tmp
+*.log
