@@ -1909,8 +1909,9 @@
             const classeVariation = estEnHausse ? 'hausse' : 'baisse';
             const symboleVariation = estEnHausse ? '▲' : '▼';
 
-            // Heure actuelle pour "dernière mise à jour"
-            const maintenant = new Date().toLocaleTimeString('fr-FR');
+            // Date et heure actuelles pour "dernière mise à jour"
+            const dateActuelle = new Date();
+            const maintenant = dateActuelle.toLocaleDateString('fr-FR') + ' à ' + dateActuelle.toLocaleTimeString('fr-FR');
 
             // Remplace le contenu de la section prix
             const sectionPrix = document.getElementById('sectionPrix');
